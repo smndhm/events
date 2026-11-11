@@ -1,7 +1,10 @@
-// Films in original version, from the showtimes Allociné gives for each cinema, as JSON: one request per cinema, day and
-// page of fifteen films. A film is one event per cinema, from its first showtime to its last, its showtimes as details.
+// Films in their original language, from the showtimes Allociné gives for each cinema, as JSON: one request per cinema,
+// day and page of fifteen films. Foreign films in original version, subtitled or not, and French films, which are in
+// French; dubbed showtimes are left out. A film is one event, from its first showtime to its last in any of the cinemas,
+// each cinema showing it a line of details, the nearest first.
 import { addDays, parisDay, TIME_ZONE, withParisOffset } from '../utils/dates.ts';
 import { fetchPage } from '../utils/http.ts';
+import { distanceKm } from '../utils/geo.ts';
 import type { Event, Source } from '../types.ts';
 
 const NAME = 'allocine';
@@ -24,16 +27,21 @@ type Answer = {
   results: { movie: { internalId: number; title: string }; showtimes: Record<string, Showtime[]> }[];
 };
 
-export type Screening = { movieId: number; title: string; startsAt: string };
+// ORIGINAL: a foreign film in original version, subtitled or not. LOCAL: a French film, in French. DUBBED, left out: a
+// foreign film dubbed in French.
+const VERSIONS = ['ORIGINAL', 'LOCAL'] as const;
+type Version = (typeof VERSIONS)[number];
 
-// The showtimes in original version, subtitled or not, of an answer. A French film is LOCAL, and a dubbed one DUBBED.
+export type Screening = { movieId: number; title: string; startsAt: string; version: Version };
+
+// The showtimes of an answer in the film's own language
 export const parseShowtimes = (answer: Answer): Screening[] => {
   if (answer.error) throw new Error(`Allociné answered an error: ${answer.message ?? 'no message'}`);
   return answer.results.flatMap(({ movie, showtimes }) =>
     Object.values(showtimes)
       .flat()
-      .filter(showtime => showtime.diffusionVersion === 'ORIGINAL')
-      .map(showtime => ({ movieId: movie.internalId, title: movie.title, startsAt: withParisOffset(showtime.startsAt) })),
+      .filter((showtime): showtime is Showtime & { diffusionVersion: Version } => (VERSIONS as readonly string[]).includes(showtime.diffusionVersion))
+      .map(showtime => ({ movieId: movie.internalId, title: movie.title, startsAt: withParisOffset(showtime.startsAt), version: showtime.diffusionVersion })),
   );
 };
 
@@ -47,25 +55,39 @@ export const describeShowtimes = (times: string[]): string =>
     .map(([, day]) => `${dayFormat.format(new Date(day[0] ?? '')).replace(' ', '\u00a0')}\u00a0:\u00a0${day.map(time => timeFormat.format(new Date(time))).join(', ')}`)
     .join(' · ');
 
-export const toEvents = (theater: Theater, screenings: Screening[]): Event[] =>
-  [...Map.groupBy(screenings, ({ movieId }) => movieId)].map(([movieId, showings]) => {
-    const times = [...new Set(showings.map(({ startsAt }) => startsAt))].toSorted();
+// "Ti Hanok (Auray)", but not "CGR Lanester (Lanester)"
+export const theaterLabel = (theater: Theater): string => (theater.name.includes(theater.place) ? theater.name : `${theater.name} (${theater.place})`);
+
+// One event per film: `theaters` in the order to list them, the nearest first, and what each one shows
+export const toEvents = (showings: { theater: Theater; screenings: Screening[] }[]): Event[] => {
+  const byMovie = Map.groupBy(
+    showings.flatMap(({ theater, screenings }) => screenings.map(screening => ({ theater, screening }))),
+    ({ screening }) => screening.movieId,
+  );
+  return [...byMovie].map(([movieId, entries]) => {
+    const times = entries.map(({ screening }) => screening.startsAt).toSorted();
+    const theaters = showings.map(({ theater }) => theater).filter(theater => entries.some(entry => entry.theater === theater));
+    const [nearest] = theaters;
+    const first = entries[0]?.screening;
     return {
-      id: `${NAME}:${theater.id}:${movieId}`,
+      id: `${NAME}:${movieId}`,
       source: NAME,
       category: 'cinema',
-      title: `${showings[0]?.title ?? ''} (VO)`,
+      // A French film is in French: only a foreign one says it is in original version
+      title: first?.version === 'ORIGINAL' ? `${first.title} (VO)` : (first?.title ?? ''),
       start: times[0] ?? '',
       end: times.at(-1),
-      // "Ti Hanok, Auray", but not "CGR Lanester, Lanester"
-      place: theater.name.includes(theater.place) ? theater.name : `${theater.name}, ${theater.place}`,
-      address: theater.address,
-      lat: theater.lat,
-      lon: theater.lon,
-      url: `https://www.allocine.fr/seance/salle_gen_csalle=${theater.id}.html`,
-      details: describeShowtimes(times),
+      place: theaters.map(theaterLabel).join(', '),
+      lat: nearest?.lat,
+      lon: nearest?.lon,
+      url: `https://www.allocine.fr/film/fichefilm_gen_cfilm=${movieId}.html`,
+      details: theaters.map(theater => {
+        const shown = entries.filter(entry => entry.theater === theater).map(({ screening }) => screening.startsAt);
+        return `${theaterLabel(theater)} : ${describeShowtimes([...new Set(shown)])}`;
+      }),
     };
   });
+};
 
 const fetchDay = async (theater: Theater, day: string): Promise<Screening[]> => {
   const screenings: Screening[] = [];
@@ -78,22 +100,24 @@ const fetchDay = async (theater: Theater, day: string): Promise<Screening[]> => 
   return screenings;
 };
 
-export default function allocine({ theaters, days }: { theaters: Theater[]; days: number }): Source {
+export default function allocine({ home, theaters, days }: { home: { lat: number; lon: number }; theaters: Theater[]; days: number }): Source {
+  // The nearest cinema first: it gives a film its distance, and comes first under it
+  const byDistance = theaters.toSorted((a, b) => distanceKm(home, a) - distanceKm(home, b));
   return {
     name: NAME,
     label: 'Allociné',
     homepage: 'https://www.allocine.fr/',
     fetchEvents: async ({ now }) => {
       const today = parisDay(now);
-      const events: Event[] = [];
-      for (const theater of theaters) {
+      const showings: { theater: Theater; screenings: Screening[] }[] = [];
+      for (const theater of byDistance) {
         const screenings: Screening[] = [];
         for (let day = 0; day < days; day++) {
           screenings.push(...(await fetchDay(theater, addDays(today, day))));
         }
-        events.push(...toEvents(theater, screenings));
+        showings.push({ theater, screenings });
       }
-      return events;
+      return toEvents(showings);
     },
   };
 }

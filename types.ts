@@ -1,7 +1,7 @@
 // What the page groups its events by. A source gives each event one of them.
 export const CATEGORIES = {
   brocante: 'Brocantes et vide-greniers',
-  cinema: 'Films en VO',
+  cinema: 'Films en VO ou en français',
   sortie: 'Concerts, spectacles et sorties',
 } as const;
 
@@ -25,8 +25,8 @@ export type Event = {
   lon?: number;
   url: string;
   image?: string;
-  // Shown in place of the hours, such as a film's showtimes on each day
-  details?: string;
+  // Lines shown in place of the hours, such as a film's showtimes in each cinema
+  details?: string[];
 };
 
 // An event as the page and the feeds show it: with how far it is, and the day it was first seen, which the state

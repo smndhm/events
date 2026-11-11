@@ -22,7 +22,7 @@ export const shortDay = (day: string): string => shortDayFormat.format(atNoon(da
 // The details a source gave, such as a film's showtimes; else "10:00 – 18:00", "jusqu'au dim. 16 nov.", or nothing for a
 // bare day
 export const when = (event: KnownEvent): string => {
-  if (event.details) return event.details;
+  if (event.details) return event.details.join(' ; ');
   const last = lastDay(event);
   if (last !== parisDay(event.start)) return `jusqu'au ${shortDay(last)}`;
   if (isDayOnly(event.start)) return '';

@@ -33,7 +33,7 @@ describe('format', () => {
     expect(when(event('a'))).toBe('08:00 – 18:00');
     expect(when(event('a', { end: '2026-11-16T18:00:00+01:00' }))).toBe("jusqu'au lun. 16 nov.");
     expect(when(event('a', { start: '2026-11-15', end: undefined }))).toBe('');
-    expect(when(event('a', { details: 'jeu. 12 : 20:30' }))).toBe('jeu. 12 : 20:30');
+    expect(when(event('a', { details: ['Ti Hanok : jeu. 12 : 20:30', 'CGR Lanester : ven. 13 : 18:00'] }))).toBe('Ti Hanok : jeu. 12 : 20:30 ; CGR Lanester : ven. 13 : 18:00');
   });
 });
 
@@ -60,10 +60,15 @@ describe('renderPage', () => {
     expect(html).toContain('href="rss/cinema.xml"');
   });
 
-  it('puts the details on a line of their own, under the place', () => {
-    const html = renderPage([event('film', { category: 'cinema', place: 'Ti Hanok, Auray', details: 'jeu. 12 : 20:30' })], SETTINGS, NOW);
-    expect(html).toContain('<p class="ds-u-text-muted event__meta">Ciné VO · Ti Hanok, Auray, 12\u00a0km</p>');
-    expect(html).toContain('<p class="ds-u-text-muted event__meta">jeu. 12 : 20:30</p>');
+  it('puts each line of details on its own, under the place', () => {
+    const html = renderPage(
+      [event('film', { category: 'cinema', place: 'Ti Hanok (Auray), CGR Lanester', details: ['Ti Hanok (Auray) : jeu. 12 : 20:30', 'CGR Lanester : ven. 13 : 18:00'] })],
+      SETTINGS,
+      NOW,
+    );
+    expect(html).toContain('<p class="ds-u-text-muted event__meta">Ciné · Ti Hanok (Auray), CGR Lanester, 12\u00a0km</p>');
+    expect(html).toContain('<p class="ds-u-text-muted event__meta">Ti Hanok (Auray) : jeu. 12 : 20:30</p>');
+    expect(html).toContain('<p class="ds-u-text-muted event__meta">CGR Lanester : ven. 13 : 18:00</p>');
   });
 
   it('is styled by the design system, next to it', () => {

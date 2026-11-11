@@ -42,7 +42,7 @@ try {
     await page.goto(url);
     failures.push(...(await audit(page)).map(violation => `${colorScheme}: ${violation}`));
 
-    await page.getByLabel('Films en VO').check();
+    await page.getByLabel('Films en VO ou en français').check();
     const visible = await page.locator('.event:visible').count();
     if (visible !== 1) failures.push(`${colorScheme}: the film filter shows ${visible} events, not 1`);
     await page.close();
