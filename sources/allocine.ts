@@ -24,7 +24,7 @@ type Answer = {
   error: boolean;
   message?: string | null;
   pagination?: { page: number | string; totalPages: number };
-  results: { movie: { internalId: number; title: string }; showtimes: Record<string, Showtime[]> }[];
+  results: { movie: { internalId: number; title: string; runtime?: string | null }; showtimes: Record<string, Showtime[]> }[];
 };
 
 // ORIGINAL: a foreign film in original version, subtitled or not. LOCAL: a French film, in French. DUBBED, left out: a
@@ -32,7 +32,14 @@ type Answer = {
 const VERSIONS = ['ORIGINAL', 'LOCAL'] as const;
 type Version = (typeof VERSIONS)[number];
 
-export type Screening = { movieId: number; title: string; startsAt: string; version: Version };
+export type Screening = { movieId: number; title: string; startsAt: string; version: Version; minutes?: number };
+
+// "1h 33min", or "52min": in minutes
+export const parseRuntime = (runtime: string | null | undefined): number | undefined => {
+  const match = runtime?.match(/^(?:(\d+)h)?\s*(?:(\d+)\s*min)?$/);
+  const minutes = match ? Number(match[1] ?? 0) * 60 + Number(match[2] ?? 0) : 0;
+  return minutes > 0 ? minutes : undefined;
+};
 
 // The showtimes of an answer in the film's own language
 export const parseShowtimes = (answer: Answer): Screening[] => {
@@ -41,7 +48,13 @@ export const parseShowtimes = (answer: Answer): Screening[] => {
     Object.values(showtimes)
       .flat()
       .filter((showtime): showtime is Showtime & { diffusionVersion: Version } => (VERSIONS as readonly string[]).includes(showtime.diffusionVersion))
-      .map(showtime => ({ movieId: movie.internalId, title: movie.title, startsAt: withParisOffset(showtime.startsAt), version: showtime.diffusionVersion })),
+      .map(showtime => ({
+        movieId: movie.internalId,
+        title: movie.title,
+        startsAt: withParisOffset(showtime.startsAt),
+        version: showtime.diffusionVersion,
+        minutes: parseRuntime(movie.runtime),
+      })),
   );
 };
 
@@ -51,6 +64,7 @@ export const theaterUrl = (theater: Theater, day?: string): string => `https://w
 // A cinema's showtimes of a film, by day
 export const toShowing = (theater: Theater, distance: number | undefined, times: string[]): Showing => ({
   place: theaterLabel(theater),
+  address: `${theater.address}, ${theater.place}`,
   url: theaterUrl(theater),
   distance,
   days: [...Map.groupBy([...new Set(times)].toSorted(), time => parisDay(time))].map(([day, dayTimes]) => ({ day, url: theaterUrl(theater, day), times: dayTimes })),
@@ -86,6 +100,7 @@ export const toEvents = (showings: Programme[]): Event[] => {
       lat: nearest?.lat,
       lon: nearest?.lon,
       url: `https://www.allocine.fr/film/fichefilm_gen_cfilm=${movieId}.html`,
+      minutes: first?.minutes,
       showings: programmes.map(({ theater, distance }) =>
         toShowing(
           theater,

@@ -1,6 +1,7 @@
 import { cpSync, mkdirSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
+import { eventCalendar, icsPath, renderIcs, screeningCalendar, screeningKey } from './ics.ts';
 import { feedPath, renderPage, type PageSettings } from './page.ts';
 import { renderRss } from './rss.ts';
 import { CATEGORIES, type Category, type KnownEvent } from '../types.ts';
@@ -10,7 +11,8 @@ export type SiteSettings = PageSettings & { siteUrl: string };
 // The design system's stylesheet and the fonts it loads, from the package's dist/
 const DS_DIST = dirname(createRequire(import.meta.url).resolve('@dume/ds/styles.css'));
 
-// Writes the site in `dir`: the page and its own stylesheet, its feeds, and the design system next to them, as ds/
+// Writes the site in `dir`: the page and its own stylesheet, its feeds, its calendar files, and the design system next to
+// them, as ds/
 export const writeSite = (dir: string, events: KnownEvent[], settings: SiteSettings, now: Date): void => {
   const write = (path: string, content: string): void => {
     const file = join(dir, path);
@@ -19,6 +21,15 @@ export const writeSite = (dir: string, events: KnownEvent[], settings: SiteSetti
   };
 
   write('index.html', renderPage(events, settings, now));
+  // A calendar file per event, and per showtime of a film
+  for (const event of events) {
+    if (!event.showings) write(icsPath(event.id), renderIcs(eventCalendar(event), now));
+    for (const showing of event.showings ?? []) {
+      for (const at of showing.days.flatMap(({ times }) => times)) {
+        write(icsPath(screeningKey(event, showing, at)), renderIcs(screeningCalendar(event, showing, at), now));
+      }
+    }
+  }
   cpSync(join(DS_DIST, 'styles.css'), join(dir, 'ds', 'styles.css'));
   cpSync(join(DS_DIST, 'fonts'), join(dir, 'ds', 'fonts'), { recursive: true });
   cpSync(new URL('page.css', import.meta.url), join(dir, 'page.css'));

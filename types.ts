@@ -27,11 +27,15 @@ export type Event = {
   image?: string;
   // A film's showtimes in each cinema showing it, shown in place of the hours
   showings?: Showing[];
+  // How long it lasts, such as a film, in minutes: the end of each showtime in a calendar
+  minutes?: number;
 };
 
 // A film's showtimes in one cinema: its page of showtimes, how far it is, and each day with its page and its times
 export type Showing = {
   place: string;
+  // The street and the town, for a calendar
+  address?: string;
   url: string;
   distance?: number;
   days: { day: string; url: string; times: string[] }[];

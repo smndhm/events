@@ -1,8 +1,9 @@
 // The page, built with the design system, @dume/ds: its layout, its card for each event, its stack for each day's list,
 // its footer and its utilities. render/site.ts copies its stylesheet and fonts next to the page, as ds/.
 import { dayTitle, escape, listedOn, showingDay, time, when, where } from './format.ts';
+import { icsPath, screeningKey } from './ics.ts';
 import { parisDay } from '../utils/dates.ts';
-import { CATEGORIES, type Category, type KnownEvent, type Showing, type Source } from '../types.ts';
+import { CATEGORIES, type Category, type KnownEvent, type Source } from '../types.ts';
 
 export type PageSettings = {
   home: { name: string };
@@ -19,19 +20,22 @@ const updatedFormat = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', time
 const isNew = (event: KnownEvent, now: Date, newDays: number): boolean => now.getTime() - new Date(event.firstSeen).getTime() < newDays * 86_400_000;
 
 // A film's cinemas, the nearest first, each with its days and their times: the cinema links to all its showtimes, a day
-// to its showtimes that day, which its hidden text says, "mer. 11" alone not saying where it goes
-const renderShowings = (showings: Showing[]): string => `
+// to its showtimes that day, and a time adds that showtime to the visitor's calendar, which their hidden texts say,
+// "mer. 11" or "20:30" alone not saying where they go
+const renderShowings = (event: KnownEvent): string => `
             <ul class="showings" role="list">
-              ${showings
+              ${(event.showings ?? [])
                 .map(
-                  ({ place, url, distance, days }) => `<li class="showings__theater">
-                <p class="showings__name"><a href="${escape(url)}">${escape(place)}<span class="ds-u-visually-hidden">, toutes les séances</span></a>${distance === undefined ? '' : ` <span class="ds-u-text-muted">· ${distance}&nbsp;km</span>`}</p>
+                  showing => `<li class="showings__theater">
+                <p class="showings__name"><a href="${escape(showing.url)}">${escape(showing.place)}<span class="ds-u-visually-hidden">, toutes les séances</span></a>${showing.distance === undefined ? '' : ` <span class="ds-u-text-muted">· ${showing.distance}&nbsp;km</span>`}</p>
                 <dl class="showings__days">
-                  ${days
+                  ${showing.days
                     .map(
                       ({ day, url: dayUrl, times }) =>
-                        `<dt class="showings__day"><a href="${escape(dayUrl)}">${showingDay(day)}<span class="ds-u-visually-hidden">, séances du jour à ${escape(place)}</span></a></dt>
-                  <dd class="showings__times">${times.map(time).join(', ')}</dd>`,
+                        `<dt class="showings__day"><a href="${escape(dayUrl)}">${showingDay(day)}<span class="ds-u-visually-hidden">, séances du jour à ${escape(showing.place)}</span></a></dt>
+                  <dd class="showings__times">${times
+                    .map(at => `<a href="${icsPath(screeningKey(event, showing, at))}">${time(at)}<span class="ds-u-visually-hidden">, ajouter la séance à l'agenda</span></a>`)
+                    .join(', ')}</dd>`,
                     )
                     .join('\n                  ')}
                 </dl>
@@ -47,7 +51,11 @@ const renderEvent = (event: KnownEvent, now: Date, newDays: number): string => {
     : [SHORT_LABELS[event.category], when(event), where(event)].filter(Boolean).join(' · ');
   return `<li class="ds-c-card event" data-category="${event.category}">
             <p class="event__title"><a href="${escape(event.url)}">${escape(event.title)}</a>${isNew(event, now, newDays) ? ' <strong class="ds-u-text-primary event__new">Nouveau</strong>' : ''}</p>
-            <p class="ds-u-text-muted event__meta">${escape(meta)}</p>${event.showings ? renderShowings(event.showings) : ''}
+            <p class="ds-u-text-muted event__meta">${escape(meta)}</p>${
+              event.showings
+                ? renderShowings(event)
+                : `\n            <p class="event__meta"><a href="${icsPath(event.id)}">Ajouter à l'agenda<span class="ds-u-visually-hidden"> : ${escape(event.title)}</span></a></p>`
+            }
           </li>`;
 };
 
@@ -103,6 +111,7 @@ export const renderPage = (events: KnownEvent[], settings: PageSettings, now: Da
       <hgroup>
         <h1>${escape(title)}</h1>
         <p class="ds-u-text-muted">Ce qui arrive dans les ${settings.horizonDays} prochains jours, à moins de ${settings.radiusKm}&nbsp;km. Mis à jour le ${updatedFormat.format(now)}.</p>
+        <p class="ds-u-text-muted">Un événement, ou l'horaire d'une séance, s'ajoute à votre agenda d'un clic.</p>
       </hgroup>
       ${events.length === 0 ? '<p>Rien de prévu pour le moment.</p>' : [...(categories.length > 1 ? [renderFilters(events, categories)] : []), ...sections].join('\n      ')}
     </main>

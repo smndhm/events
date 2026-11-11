@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
-import allocine, { parseShowtimes, theaterLabel, theaterUrl, toEvents, toShowing, type Screening, type Theater } from './allocine.ts';
+import allocine, { parseRuntime, parseShowtimes, theaterLabel, theaterUrl, toEvents, toShowing, type Screening, type Theater } from './allocine.ts';
 import { context } from '../utils/testing.ts';
 
 // CGR Lanester's showtimes of 12 November 2026, its two pages, as Allociné sent them on 11 November
@@ -23,8 +23,9 @@ describe('parseShowtimes', () => {
       title: 'Godzilla Minus Zero',
       startsAt: expect.stringMatching(/^2026-11-12T\d{2}:\d{2}:00\+01:00$/),
       version: 'ORIGINAL',
+      minutes: expect.any(Number),
     });
-    expect(screenings).toContainEqual(expect.objectContaining({ title: 'Gilles United', version: 'LOCAL' }));
+    expect(screenings).toContainEqual(expect.objectContaining({ title: 'Gilles United', version: 'LOCAL', minutes: 93 }));
     expect(screenings.every(({ startsAt }) => startsAt.endsWith('+01:00'))).toBe(true);
   });
 
@@ -70,6 +71,16 @@ describe('toEvents', () => {
 
   it('keeps the films apart', () => {
     expect(toEvents([{ theater: CGR, screenings: [screening('2026-11-12T20:10:00+01:00'), screening('2026-11-12T20:10:00+01:00', { movieId: 2 })] }])).toHaveLength(2);
+  });
+});
+
+describe('parseRuntime', () => {
+  it('reads hours and minutes', () => {
+    expect(parseRuntime('1h 33min')).toBe(93);
+    expect(parseRuntime('2h')).toBe(120);
+    expect(parseRuntime('52min')).toBe(52);
+    expect(parseRuntime(null)).toBeUndefined();
+    expect(parseRuntime('soon')).toBeUndefined();
   });
 });
 

@@ -87,7 +87,15 @@ describe('renderPage', () => {
     expect(html).toContain(
       '<dt class="showings__day"><a href="https://example.org/ti-hanok#2026-11-11">mer.\u00a011<span class="ds-u-visually-hidden">, séances du jour à Ti Hanok (Auray)</span></a></dt>',
     );
-    expect(html).toContain('<dd class="showings__times">15:45, 18:00</dd>');
+    expect(html).toMatch(
+      /<dd class="showings__times"><a href="ics\/[0-9a-f]{16}\.ics">15:45<span class="ds-u-visually-hidden">, ajouter la séance à l'agenda<\/span><\/a>, <a href="ics\/[0-9a-f]{16}\.ics">18:00/,
+    );
+  });
+
+  it('adds an event to the calendar with a link', () => {
+    expect(renderPage([event('fair')], SETTINGS, NOW)).toMatch(
+      /<p class="event__meta"><a href="ics\/[0-9a-f]{16}\.ics">Ajouter à l'agenda<span class="ds-u-visually-hidden"> : fair<\/span><\/a><\/p>/,
+    );
   });
 
   it('is styled by the design system, next to it', () => {
