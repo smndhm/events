@@ -1,0 +1,6 @@
+node_modules
+coverage
+# Built by pnpm build, deployed by the Site workflow
+_site
+# The state branch, checked out by the Site workflow
+.state

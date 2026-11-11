@@ -1,0 +1,80 @@
+name: Site
+
+on:
+  # Every day at 4:43 UTC, 5:43 in Paris in winter and 6:43 in summer: the day's page is out before breakfast. In the
+  # second half of the hour, where GitHub's scheduler is the least loaded.
+  schedule:
+    - cron: '43 4 * * *'
+  # A change to the code or the configuration goes out at once
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+  workflow_dispatch:
+
+# One run at a time: two would both commit to the state branch
+concurrency:
+  group: site
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      # The state branch
+      contents: write
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: smndhm/dev-config/ci/setup@5d92c9d51b8ed2a7c96b276110e5d7ec4b5aa276 # main
+
+      # What the last run published, with the day each event was first seen (utils/state.ts), on a branch holding
+      # nothing else, which no workflow listens to. The first run starts it.
+      - name: Read what the last run published
+        run: |
+          if git ls-remote --exit-code --heads origin events-state; then
+            git fetch --depth 1 origin events-state
+            git worktree add --detach .state FETCH_HEAD
+          else
+            git worktree add --orphan -b events-state .state
+          fi
+
+      # Fails when a source failed, after writing the site with that source's events of the last run: the steps below
+      # still publish it, and the run is red so it is seen
+      - name: Read the sources and write the site
+        run: pnpm run build
+
+      - name: Write down what this run published
+        if: ${{ !cancelled() && hashFiles('_site/index.html') != '' }}
+        working-directory: .state
+        run: |
+          git add --all
+          if git diff --quiet --cached; then
+            echo 'Nothing changed.'
+            exit 0
+          fi
+          git -c user.name='github-actions[bot]' \
+              -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+              commit -m 'chore(state): events published'
+          git push origin HEAD:events-state
+
+      - name: Setup Pages
+        if: ${{ !cancelled() && hashFiles('_site/index.html') != '' }}
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6
+
+      - name: Upload the site
+        if: ${{ !cancelled() && hashFiles('_site/index.html') != '' }}
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        if: ${{ !cancelled() && hashFiles('_site/index.html') != '' }}
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5

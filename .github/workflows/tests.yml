@@ -1,0 +1,28 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: smndhm/dev-config/ci/setup@5d92c9d51b8ed2a7c96b276110e5d7ec4b5aa276 # main
+      - name: Check types
+        run: pnpm run typecheck
+      - name: Lint
+        run: pnpm run lint
+      # On the pages of __fixtures__: the sites themselves are only read by the Site workflow
+      - name: Run tests
+        run: pnpm run test
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Run axe on the page
+        run: pnpm run test:a11y

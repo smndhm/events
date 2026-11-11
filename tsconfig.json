@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    // Node runs the TypeScript files as they are, stripping the types: no build, and only syntax it can strip
+    "module": "nodenext",
+    "target": "es2024",
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+    "noEmit": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "skipLibCheck": true,
+    "types": ["node"]
+  },
+  "exclude": ["node_modules", "_site", ".state"]
+}
