@@ -8,7 +8,12 @@ describe('writeSite', () => {
   it('writes the page, a feed per category, and the design system next to them', () => {
     const dir = mkdtempSync(join(tmpdir(), 'events-site-'));
     writeSite(dir, [], { home: { name: 'Landévant' }, radiusKm: 25, horizonDays: 45, newDays: 2, sources: [], siteUrl: 'https://example.org/' }, new Date('2026-11-11T09:00:00Z'));
-    expect(readFileSync(join(dir, 'index.html'), 'utf8')).toContain('Rien de prévu');
+    const html = readFileSync(join(dir, 'index.html'), 'utf8');
+    expect(html).toContain('Rien de prévu');
+    // Each with a version from its content, so a browser never mixes a new page with a file kept from the last one
+    expect(html).toMatch(/<link rel="stylesheet" href="ds\/styles\.css\?v=[0-9a-f]{8}">/);
+    expect(html).toMatch(/<link rel="stylesheet" href="page\.css\?v=[0-9a-f]{8}">/);
+    expect(html).toMatch(/<script src="page\.js\?v=[0-9a-f]{8}" defer><\/script>/);
     expect(existsSync(join(dir, 'ics'))).toBe(false);
     for (const file of [
       'rss.xml',

@@ -5,7 +5,14 @@ import { icsPath, screeningKey } from './ics.ts';
 import { addDays, isDayOnly, lastDay, parisDay, withParisOffset } from '../utils/dates.ts';
 import { CATEGORIES, type Category, type KnownEvent, type Source } from '../types.ts';
 
+// The page's stylesheets and script, at the addresses to load them from, such as `page.js?v=1a2b3c4d`: a version from
+// each file's content, so a browser never mixes a new page with a file it kept from the last one (render/site.ts)
+export type Assets = { ds: string; css: string; js: string };
+
+const PLAIN_ASSETS: Assets = { ds: 'ds/styles.css', css: 'page.css', js: 'page.js' };
+
 export type PageSettings = {
+  assets?: Assets;
   home: { name: string };
   radiusKm: number;
   horizonDays: number;
@@ -103,6 +110,7 @@ export const feedPath = (category?: Category): string => (category ? `rss/${cate
 
 export const renderPage = (events: KnownEvent[], settings: PageSettings, now: Date): string => {
   const today = parisDay(now);
+  const assets = settings.assets ?? PLAIN_ASSETS;
   const title = `Autour de ${settings.home.name}`;
   const categories = (Object.keys(CATEGORIES) as Category[]).filter(category => events.some(event => event.category === category));
   const days = [
@@ -138,9 +146,9 @@ export const renderPage = (events: KnownEvent[], settings: PageSettings, now: Da
     ${feeds.map(feed => `<link rel="alternate" type="application/rss+xml" title="${escape(`${title} : ${feed.label}`)}" href="${feed.path}">`).join('\n    ')}
     <link rel="preload" href="ds/fonts/bricolage-grotesque-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
     <!-- The design system, @dume/ds: all of the page's style, but what is its own -->
-    <link rel="stylesheet" href="ds/styles.css">
+    <link rel="stylesheet" href="${assets.ds}">
     <!-- What is the page's own, over it: its days, their categories and its events (render/page.css) -->
-    <link rel="stylesheet" href="page.css">
+    <link rel="stylesheet" href="${assets.css}">
   </head>
   <body class="ds-l-page ds-l-page--full-height">
     <main id="main" class="ds-l-page__main">
@@ -158,7 +166,7 @@ export const renderPage = (events: KnownEvent[], settings: PageSettings, now: Da
       <p class="ds-u-text-muted">Sources : ${settings.sources.map(source => `<a href="${escape(source.homepage)}">${escape(source.label)}</a>`).join(', ')}.</p>
     </footer>
     <!-- What has passed, hidden as the page is read: without it, everything as built (render/page.js) -->
-    <script src="page.js" defer></script>
+    <script src="${assets.js}" defer></script>
   </body>
 </html>
 `;

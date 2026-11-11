@@ -1,4 +1,5 @@
-import { cpSync, mkdirSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { cpSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { eventCalendar, icsPath, renderIcs, screeningCalendar, screeningKey } from './ics.ts';
@@ -11,6 +12,9 @@ export type SiteSettings = PageSettings & { siteUrl: string };
 // The design system's stylesheet and the fonts it loads, from the package's dist/
 const DS_DIST = dirname(createRequire(import.meta.url).resolve('@dume/ds/styles.css'));
 
+// A file's address with a version from its content
+const versioned = (path: string, source: string | URL): string => `${path}?v=${createHash('sha1').update(readFileSync(source)).digest('hex').slice(0, 8)}`;
+
 // Writes the site in `dir`: the page, its own stylesheet and script, its feeds, its calendar files, and the design system next to
 // them, as ds/
 export const writeSite = (dir: string, events: KnownEvent[], settings: SiteSettings, now: Date): void => {
@@ -20,7 +24,11 @@ export const writeSite = (dir: string, events: KnownEvent[], settings: SiteSetti
     writeFileSync(file, content);
   };
 
-  write('index.html', renderPage(events, settings, now));
+  const DS_STYLES = join(DS_DIST, 'styles.css');
+  const PAGE_CSS = new URL('page.css', import.meta.url);
+  const PAGE_JS = new URL('page.js', import.meta.url);
+  const assets = { ds: versioned('ds/styles.css', DS_STYLES), css: versioned('page.css', PAGE_CSS), js: versioned('page.js', PAGE_JS) };
+  write('index.html', renderPage(events, { ...settings, assets }, now));
   // A calendar file per event, and per showtime of a film
   for (const event of events) {
     if (!event.showings) write(icsPath(event.id), renderIcs(eventCalendar(event), now));
@@ -30,10 +38,10 @@ export const writeSite = (dir: string, events: KnownEvent[], settings: SiteSetti
       }
     }
   }
-  cpSync(join(DS_DIST, 'styles.css'), join(dir, 'ds', 'styles.css'));
+  cpSync(DS_STYLES, join(dir, 'ds', 'styles.css'));
   cpSync(join(DS_DIST, 'fonts'), join(dir, 'ds', 'fonts'), { recursive: true });
-  cpSync(new URL('page.css', import.meta.url), join(dir, 'page.css'));
-  cpSync(new URL('page.js', import.meta.url), join(dir, 'page.js'));
+  cpSync(PAGE_CSS, join(dir, 'page.css'));
+  cpSync(PAGE_JS, join(dir, 'page.js'));
 
   const title = `Autour de ${settings.home.name}`;
   const { siteUrl, radiusKm } = settings;
