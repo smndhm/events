@@ -89,3 +89,8 @@
   margin-block-start: var(--ds-b-size-8);
   padding-inline-start: 0;
 }
+
+/* Its link to the calendar: small, under its details, which stay what one reads first */
+.event__calendar {
+  font-size: var(--ds-b-size-12);
+}

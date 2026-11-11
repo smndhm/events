@@ -94,7 +94,7 @@ describe('renderPage', () => {
 
   it('adds an event to the calendar with its file', () => {
     expect(renderPage([event('fair')], SETTINGS, NOW)).toMatch(
-      /<p class="event__meta"><a href="ics\/[0-9a-f]{16}\.ics">Ajouter à l&#39;agenda<span class="ds-u-visually-hidden"> : fair<\/span><\/a><\/p>/,
+      /<p class="event__meta event__calendar"><a href="ics\/[0-9a-f]{16}\.ics">Ajouter à l&#39;agenda<span class="ds-u-visually-hidden"> : fair<\/span><\/a><\/p>/,
     );
   });
 

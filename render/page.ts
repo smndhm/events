@@ -61,7 +61,9 @@ const renderEvent = (event: KnownEvent, now: Date, newDays: number): string => {
   return `<li class="ds-c-card event" data-category="${event.category}">
             <p class="event__title"><a href="${escape(event.url)}">${escape(event.title)}</a>${isNew(event, now, newDays) ? ' <strong class="ds-u-text-primary event__new">Nouveau</strong>' : ''}</p>
             <p class="ds-u-text-muted event__meta">${escape(meta)}</p>${
-              event.showings ? renderShowings(event) : `\n            <p class="event__meta">${calendarLink(event.id, "Ajouter à l'agenda", ` : ${event.title}`)}</p>`
+              event.showings
+                ? renderShowings(event)
+                : `\n            <p class="event__meta event__calendar">${calendarLink(event.id, "Ajouter à l'agenda", ` : ${event.title}`)}</p>`
             }
           </li>`;
 };
