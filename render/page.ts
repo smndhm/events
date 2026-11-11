@@ -22,7 +22,7 @@ const renderEvent = (event: KnownEvent, now: Date, newDays: number): string => {
   // Details, such as a film's showtimes, can run long: on a line of their own, under the place
   const meta = [SHORT_LABELS[event.category], event.details ? '' : when(event), where(event)].filter(Boolean).join(' · ');
   return `<li class="ds-c-card event" data-category="${event.category}">
-            <p class="event__title"><a href="${escape(event.url)}">${escape(event.title)}</a>${isNew(event, now, newDays) ? ' <strong class="ds-u-text-primary">Nouveau</strong>' : ''}</p>
+            <p class="event__title"><a href="${escape(event.url)}">${escape(event.title)}</a>${isNew(event, now, newDays) ? ' <strong class="ds-u-text-primary event__new">Nouveau</strong>' : ''}</p>
             <p class="ds-u-text-muted event__meta">${escape(meta)}</p>${event.details ? `\n            <p class="ds-u-text-muted event__meta">${escape(event.details)}</p>` : ''}
           </li>`;
 };

@@ -45,3 +45,8 @@
 .event__meta {
   margin-block: var(--ds-b-size-4) 0;
 }
+
+/* Marks an event first seen in the last days: small, beside its title, which stays what catches the eye */
+.event__new {
+  font-size: var(--ds-b-size-12);
+}
