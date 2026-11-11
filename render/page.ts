@@ -109,10 +109,10 @@ export const renderPage = (events: KnownEvent[], settings: PageSettings, now: Da
     .toSorted(([a], [b]) => a.localeCompare(b));
   const feeds = [{ label: 'Tout', path: feedPath() }, ...categories.map(category => ({ label: CATEGORIES[category], path: feedPath(category) }))];
 
-  // Each day, its categories in the order of CATEGORIES, each folded
+  // Each day, its number of events, then its categories in the order of CATEGORIES, each folded
   const sections = days.map(
     ([day, dayEvents]) => `<section class="day" data-day="${day}" aria-labelledby="day-${day}">
-        <h2 class="day__heading" id="day-${day}">${dayTitle(day, today)}</h2>
+        <h2 class="day__heading" id="day-${day}"><span class="day__title">${dayTitle(day, today)}</span> <span class="ds-u-text-muted">(<span class="day__total">${dayEvents.length}</span>)</span></h2>
         <div class="day__categories">
         ${[...Map.groupBy(dayEvents, event => event.category)]
           .toSorted(([a], [b]) => categories.indexOf(a) - categories.indexOf(b))

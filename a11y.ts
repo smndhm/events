@@ -56,6 +56,10 @@ try {
       [...document.querySelectorAll('.day__category')].map(category => [category.querySelector('.day__count')?.textContent, String(category.querySelectorAll('.event').length)]),
     );
     if (counts.some(([shown, inside]) => shown !== inside)) failures.push(`${colorScheme}: a category counts other than its events`);
+    const totals = await page.evaluate(() =>
+      [...document.querySelectorAll('.day')].map(day => [day.querySelector('.day__total')?.textContent, String(day.querySelectorAll('.event').length)]),
+    );
+    if (totals.some(([shown, inside]) => shown !== inside)) failures.push(`${colorScheme}: a day counts other than its events`);
     // The film, under each of its two days
     const films = await page.locator('.day__category[data-category="cinema"]').count();
     if (films !== 2) failures.push(`${colorScheme}: the film is in ${films} days, not its 2`);
@@ -75,10 +79,15 @@ try {
       category.querySelector('.day__count')?.textContent,
       String(category.querySelectorAll('.event:not([hidden])').length),
     ]),
-    headings: Object.fromEntries([...document.querySelectorAll('.day:not([hidden])')].map(day => [day.getAttribute('data-day'), day.querySelector('h2')?.textContent])),
+    totals: [...document.querySelectorAll('.day:not([hidden])')].map(day => [
+      day.querySelector('.day__total')?.textContent,
+      String(day.querySelectorAll('.event:not([hidden])').length),
+    ]),
+    headings: Object.fromEntries([...document.querySelectorAll('.day:not([hidden])')].map(day => [day.getAttribute('data-day'), day.querySelector('.day__title')?.textContent])),
   }));
   if (read.hidden === 0) failures.push('read later, no event is hidden');
   if (read.counts.some(([shown, left]) => shown !== left || left === '0')) failures.push('read later, a category counts other than its events left');
+  if (read.totals.some(([shown, left]) => shown !== left || left === '0')) failures.push('read later, a day counts other than its events left');
   if (read.ends.some(ends => new Date(ends) <= now)) failures.push('read later, an event over is still shown');
   if (read.starts.some(starts => new Date(starts) <= now)) failures.push('read later, a showtime started is still shown');
   if (!read.starts.includes('2026-11-14T20:30:00+01:00')) failures.push("read later, the evening's showtime is gone");

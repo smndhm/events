@@ -70,7 +70,7 @@ describe('renderPage', () => {
     expect(renderPage([event('<script>')], SETTINGS, NOW)).not.toContain('<script>');
   });
 
-  it('folds each category of a day, counting its events, in the order of the categories', () => {
+  it('counts the events of a day, and folds each of its categories, counting its events, in their order', () => {
     const html = renderPage([event('film', { category: 'cinema', start: '2026-11-15T20:30:00+01:00' }), event('a'), event('b')], SETTINGS, NOW);
     const brocante = html.indexOf('<details class="day__category" data-category="brocante">');
     const cinema = html.indexOf('<details class="day__category" data-category="cinema">');
@@ -78,6 +78,7 @@ describe('renderPage', () => {
     expect(cinema).toBeGreaterThan(brocante);
     expect(html).toContain('<summary><strong>Brocantes et vide-greniers</strong> <span class="ds-u-text-muted">(<span class="day__count">2</span>)</span></summary>');
     expect(html).toContain('<summary><strong>Films en VO ou en français</strong> <span class="ds-u-text-muted">(<span class="day__count">1</span>)</span></summary>');
+    expect(html).toContain('<span class="day__title">Dimanche 15 novembre</span> <span class="ds-u-text-muted">(<span class="day__total">3</span>)</span></h2>');
     expect(html).not.toContain('<fieldset');
     expect(html).toContain('href="rss/cinema.xml"');
   });
