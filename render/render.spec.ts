@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { dayTitle, when } from './format.ts';
-import { endsAt, renderPage } from './page.ts';
+import { endsAt, endsOn, renderPage } from './page.ts';
 import { renderRss } from './rss.ts';
 import type { KnownEvent, Showing } from '../types.ts';
 
@@ -84,8 +84,16 @@ describe('renderPage', () => {
   });
 
   it('opens every category, to be folded when it is not of interest', () => {
-    const html = renderPage([event('today', { start: '2026-11-11T20:00:00+01:00' }), event('sunday', { category: 'cinema' })], SETTINGS, NOW);
+    const html = renderPage([event('today', { start: '2026-11-11T20:00:00+01:00', end: '2026-11-11T22:00:00+01:00' }), event('sunday', { category: 'cinema' })], SETTINGS, NOW);
     expect(html.match(/<details class="day__category" data-category="[a-z]+" open>/g)).toHaveLength(2);
+  });
+
+  it('lists an event on several days under each of them, up to the horizon, ending at midnight but on its last', () => {
+    const html = renderPage([event('festival', { start: '2026-11-09T10:00:00+01:00', end: '2026-11-13T18:00:00+01:00' })], SETTINGS, NOW);
+    const days = html.split('<section class="day"').slice(1);
+    expect(days.map(day => day.match(/data-day="([^"]+)"/)?.[1])).toEqual(['2026-11-11', '2026-11-12', '2026-11-13']);
+    expect(days.map(day => day.match(/data-ends="([^"]+)"/)?.[1])).toEqual(['2026-11-12T00:00:00+01:00', '2026-11-13T00:00:00+01:00', '2026-11-13T18:00:00+01:00']);
+    expect(renderPage([event('season', { start: '2026-11-11', end: '2027-03-01' })], { ...SETTINGS, horizonDays: 2 }, NOW).match(/<section class="day"/g)).toHaveLength(3);
   });
 
   it('lists a film under each day it is shown, with the showtimes of that day only', () => {
@@ -169,5 +177,13 @@ describe('endsAt', () => {
 
   it('is the last showtime of a film on its day', () => {
     expect(endsAt(event('film', { start: '2026-11-12T17:25:00+01:00', end: '2026-11-12T20:30:00+01:00', showings: [] }))).toBe('2026-11-12T20:30:00+01:00');
+  });
+});
+
+describe('endsOn', () => {
+  it('is midnight on a day before the last, the end on the last', () => {
+    const festival = event('a', { start: '2026-11-11T10:00:00+01:00', end: '2026-11-13T18:00:00+01:00' });
+    expect(endsOn(festival, '2026-11-11')).toBe('2026-11-12T00:00:00+01:00');
+    expect(endsOn(festival, '2026-11-13')).toBe('2026-11-13T18:00:00+01:00');
   });
 });

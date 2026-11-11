@@ -45,11 +45,16 @@ const renderShowings = (event: KnownEvent): string => `
                 .join('\n              ')}
             </ul>`;
 
-// The days an event is listed under, and what it is on each. A film is under each day it is shown, with that day's
-// showtimes only, from its first to its last of the day; any other event under one day, its first or today.
-const listings = (event: KnownEvent, today: string): [string, KnownEvent][] => {
+// The days an event is listed under, and what it is on each, up to `horizon`. A film is under each day it is shown, with
+// that day's showtimes only, from its first to its last of the day. Any other event is under each day it is on, from its
+// first, or today when it started before, to its last: a festival until Saturday is under tomorrow too.
+const listings = (event: KnownEvent, today: string, horizon: string): [string, KnownEvent][] => {
   const { showings } = event;
-  if (!showings) return [[listedOn(event, today), event]];
+  if (!showings) {
+    const days: string[] = [];
+    for (let day = listedOn(event, today); day <= lastDay(event) && day <= horizon; day = addDays(day, 1)) days.push(day);
+    return days.map(day => [day, event]);
+  }
   const days = [...new Set(showings.flatMap(showing => showing.days.map(({ day }) => day)))].filter(day => day >= today).toSorted();
   return days.map(day => {
     const ofDay = showings.map(showing => ({ ...showing, days: showing.days.filter(shown => shown.day === day) })).filter(showing => showing.days.length > 0);
@@ -67,10 +72,18 @@ export const endsAt = (event: KnownEvent): string => {
   return new Date(new Date(event.start).getTime() + 2 * 3_600_000).toISOString();
 };
 
-const renderEvent = (event: KnownEvent, now: Date, newDays: number): string => {
+// When an event is over on one of its days, for page.js to hide it there: at its end on its last day, at midnight on the
+// others, which are then gone by
+export const endsOn = (event: KnownEvent, day: string): string => {
+  const ends = endsAt(event);
+  const midnight = withParisOffset(`${addDays(day, 1)}T00:00:00`);
+  return new Date(ends) < new Date(midnight) ? ends : midnight;
+};
+
+const renderEvent = (event: KnownEvent, day: string, now: Date, newDays: number): string => {
   // Its category is the folded list it is in: its line says when and where; a film's showtimes say both
   const meta = event.showings ? '' : [when(event), where(event)].filter(Boolean).join(' · ');
-  return `<li class="ds-c-card event" data-category="${event.category}" data-ends="${endsAt(event)}">
+  return `<li class="ds-c-card event" data-category="${event.category}" data-ends="${endsOn(event, day)}">
             <p class="event__title"><a href="${escape(event.url)}">${escape(event.title)}</a>${isNew(event, now, newDays) ? ' <span class="ds-c-tag">Nouveau</span>' : ''}</p>
             ${meta ? `<p class="ds-u-text-muted event__meta">${escape(meta)}</p>` : ''}${
               event.showings
@@ -101,7 +114,7 @@ const renderCategory = (
           <ul class="ds-l-stack" role="list">
             ${events
               .toSorted(byTimeThenDistance(day))
-              .map(event => renderEvent(event, now, newDays))
+              .map(event => renderEvent(event, day, now, newDays))
               .join('\n            ')}
           </ul>
         </details>`;
@@ -115,7 +128,7 @@ export const renderPage = (events: KnownEvent[], settings: PageSettings, now: Da
   const categories = (Object.keys(CATEGORIES) as Category[]).filter(category => events.some(event => event.category === category));
   const days = [
     ...Map.groupBy(
-      events.flatMap(event => listings(event, today)),
+      events.flatMap(event => listings(event, today, addDays(today, settings.horizonDays))),
       ([day]) => day,
     ),
   ]
