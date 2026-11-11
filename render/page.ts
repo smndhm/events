@@ -1,3 +1,5 @@
+// The page, built with the design system, @dume/ds: its layout, its card for each event, its stack for each day's list,
+// its footer and its utilities. render/site.ts copies its stylesheet and fonts next to the page, as ds/.
 import { dayTitle, escape, listedOn, when, where } from './format.ts';
 import { parisDay } from '../utils/dates.ts';
 import { CATEGORIES, type Category, type KnownEvent, type Source } from '../types.ts';
@@ -18,31 +20,37 @@ const isNew = (event: KnownEvent, now: Date, newDays: number): boolean => now.ge
 
 const renderEvent = (event: KnownEvent, now: Date, newDays: number): string => {
   // Details, such as a film's showtimes, can run long: on a line of their own, under the place
-  const meta = [event.details ? '' : when(event), where(event)].filter(Boolean).join(' · ');
-  return `<li data-category="${event.category}">
-          <a href="${escape(event.url)}">${escape(event.title)}</a>${isNew(event, now, newDays) ? ' <strong class="new">Nouveau</strong>' : ''}
-          <p><span class="tag tag-${event.category}">${SHORT_LABELS[event.category]}</span> ${escape(meta)}</p>${event.details ? `\n          <p class="details">${escape(event.details)}</p>` : ''}
-        </li>`;
+  const meta = [SHORT_LABELS[event.category], event.details ? '' : when(event), where(event)].filter(Boolean).join(' · ');
+  return `<li class="ds-c-card" data-category="${event.category}">
+            <p><a href="${escape(event.url)}">${escape(event.title)}</a>${isNew(event, now, newDays) ? ' <strong class="ds-u-text-primary">Nouveau</strong>' : ''}</p>
+            <p class="ds-u-text-muted">${escape(meta)}</p>${event.details ? `\n            <p class="ds-u-text-muted">${escape(event.details)}</p>` : ''}
+          </li>`;
 };
 
-// The category filter, once there are two categories to choose from, is a set of radio buttons, and CSS hides what they leave out (:has): it works without a script
+// The category filter, once there are two categories to choose from, is a set of radio buttons, and CSS hides what they
+// leave out (:has): it works without a script
 const filterStyles = (categories: Category[]): string =>
   categories
     .map(
-      category => `body:has(#filter-${category}:checked) li:not([data-category="${category}"]),
-      body:has(#filter-${category}:checked) section:not(:has(li[data-category="${category}"])) { display: none; }`,
+      category => `body:has(#filter-${category}:checked) li:not([data-category='${category}']),
+      body:has(#filter-${category}:checked) section:not(:has(li[data-category='${category}'])) {
+        display: none;
+      }`,
     )
     .join('\n      ');
 
 const filterOption = (id: string, label: string, count: number, checked = false): string =>
-  `<label><input type="radio" name="filter" id="filter-${id}"${checked ? ' checked' : ''}> ${label} <span class="count">(${count})</span></label>`;
+  `<label><input type="radio" name="filter" id="filter-${id}"${checked ? ' checked' : ''}> ${label} <span class="ds-u-text-muted">(${count})</span></label>`;
 
-const renderFilters = (events: KnownEvent[], categories: Category[]): string => {
-  return `<fieldset class="filters">
+const renderFilters = (events: KnownEvent[], categories: Category[]): string => `<fieldset class="ds-c-card filters">
         <legend>Afficher</legend>
-        ${[filterOption('all', 'Tout', events.length, true), ...categories.map(category => filterOption(category, CATEGORIES[category], events.filter(event => event.category === category).length))].join('\n        ')}
+        <div class="ds-l-cluster">
+          ${[
+            filterOption('all', 'Tout', events.length, true),
+            ...categories.map(category => filterOption(category, CATEGORIES[category], events.filter(event => event.category === category).length)),
+          ].join('\n          ')}
+        </div>
       </fieldset>`;
-};
 
 export const feedPath = (category?: Category): string => (category ? `rss/${category}.xml` : 'rss.xml');
 
@@ -56,8 +64,8 @@ export const renderPage = (events: KnownEvent[], settings: PageSettings, now: Da
   const sections = days.map(
     ([day, dayEvents]) => `<section aria-labelledby="day-${day}">
         <h2 id="day-${day}">${dayTitle(day, today)}</h2>
-        <ul>
-        ${dayEvents.map(event => renderEvent(event, now, settings.newDays)).join('\n        ')}
+        <ul class="ds-l-stack" role="list">
+          ${dayEvents.map(event => renderEvent(event, now, settings.newDays)).join('\n          ')}
         </ul>
       </section>`,
   );
@@ -68,70 +76,55 @@ export const renderPage = (events: KnownEvent[], settings: PageSettings, now: Da
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>${escape(title)}</title>
-    <meta name="description" content="Brocantes, vide-greniers, films en VO et sorties à moins de ${settings.radiusKm} km de ${escape(settings.home.name)}.">
+    <meta name="description" content="Brocantes, vide-greniers, films en VO, concerts et spectacles à moins de ${settings.radiusKm} km de ${escape(settings.home.name)}.">
     ${feeds.map(feed => `<link rel="alternate" type="application/rss+xml" title="${escape(`${title} : ${feed.label}`)}" href="${feed.path}">`).join('\n    ')}
+    <link rel="preload" href="ds/fonts/bricolage-grotesque-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <!-- The design system, @dume/ds: all of the page's style, but what is its own, below -->
+    <link rel="stylesheet" href="ds/styles.css">
     <style>
-      :root {
-        color-scheme: light dark;
-        --text: #1d1d1f;
-        --muted: #595959;
-        --background: #fafafa;
-        --surface: #fff;
-        --border: #d9d9d9;
-        --accent: #0b57d0;
-        --new: #8a3b00;
-        --brocante: #f3e8d6;
-        --cinema: #e3e6f8;
-        --sortie: #dff1e4;
+      /* The filter, a card: the design system styles no fieldset */
+      .filters {
+        margin: 0;
+        min-inline-size: 0;
       }
-      @media (prefers-color-scheme: dark) {
-        :root {
-          --text: #ececec;
-          --muted: #b0b0b0;
-          --background: #161616;
-          --surface: #1f1f1f;
-          --border: #3a3a3a;
-          --accent: #8ab4f8;
-          --new: #ffb27a;
-          --brocante: #4a3b22;
-          --cinema: #2e3354;
-          --sortie: #24432d;
-        }
+      .filters legend {
+        float: inline-start;
+        font-weight: 700;
+        margin-block-end: var(--ds-b-size-8);
+        padding: 0;
       }
-      * { box-sizing: border-box; }
-      body { margin: 0; background: var(--background); color: var(--text); font: 1rem/1.5 system-ui, sans-serif; }
-      header, main, footer { max-width: 48rem; margin: 0 auto; padding: 0 1rem; }
-      header { padding-block: 2rem 1rem; }
-      h1 { margin: 0 0 0.25rem; font-size: 1.75rem; }
-      header p, footer { color: var(--muted); }
-      .filters { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; margin: 0 0 1.5rem; padding: 0.75rem 1rem; border: 1px solid var(--border); border-radius: 0.5rem; background: var(--surface); }
-      .filters legend { padding: 0 0.25rem; font-weight: 600; }
-      .count { color: var(--muted); }
-      h2 { position: sticky; top: 0; margin: 1.5rem 0 0.5rem; padding: 0.5rem 0; background: var(--background); font-size: 1.15rem; }
-      ul { margin: 0; padding: 0; list-style: none; }
-      li { margin-bottom: 0.5rem; padding: 0.75rem 1rem; border: 1px solid var(--border); border-radius: 0.5rem; background: var(--surface); }
-      li > a { color: var(--accent); font-weight: 600; }
-      li p { margin: 0.25rem 0 0; color: var(--muted); font-size: 0.925rem; }
-      li .details { font-size: 0.85rem; }
-      .new { color: var(--new); font-size: 0.85rem; }
-      .tag { display: inline-block; margin-inline-end: 0.25rem; padding: 0 0.5rem; border-radius: 1rem; color: var(--text); font-size: 0.8rem; }
-      ${(Object.keys(CATEGORIES) as Category[]).map(category => `.tag-${category} { background: var(--${category}); }`).join('\n      ')}
-      footer { padding-block: 2rem; font-size: 0.925rem; }
-      footer a { color: var(--accent); }
+      .filters .ds-l-cluster {
+        clear: both;
+      }
+      /* Each day's heading stays at the top while its events scroll by */
+      h2 {
+        position: sticky;
+        inset-block-start: 0;
+        background-color: var(--ds-b-color-background);
+        padding-block: var(--ds-b-size-8);
+      }
+      .ds-c-card p {
+        margin-block: 0;
+      }
+      .ds-c-card p + p {
+        margin-block-start: var(--ds-b-size-4);
+      }
       ${filterStyles(categories)}
     </style>
   </head>
-  <body>
-    <header>
-      <h1>${escape(title)}</h1>
-      <p>Ce qui arrive dans les ${settings.horizonDays} prochains jours, à moins de ${settings.radiusKm} km. Mis à jour le ${updatedFormat.format(now)}.</p>
-    </header>
-    <main>
+  <body class="ds-l-page ds-l-page--full-height">
+    <main id="main" class="ds-l-page__main">
+      <hgroup>
+        <h1>${escape(title)}</h1>
+        <p class="ds-u-text-muted">Ce qui arrive dans les ${settings.horizonDays} prochains jours, à moins de ${settings.radiusKm}&nbsp;km. Mis à jour le ${updatedFormat.format(now)}.</p>
+      </hgroup>
       ${events.length === 0 ? '<p>Rien de prévu pour le moment.</p>' : [...(categories.length > 1 ? [renderFilters(events, categories)] : []), ...sections].join('\n      ')}
     </main>
-    <footer>
-      <p>Flux RSS : ${feeds.map(feed => `<a href="${feed.path}">${escape(feed.label)}</a>`).join(', ')}.</p>
-      <p>Sources : ${settings.sources.map(source => `<a href="${escape(source.homepage)}">${escape(source.label)}</a>`).join(', ')}.</p>
+    <footer class="ds-c-footer">
+      <ul class="ds-l-cluster">
+        ${feeds.map(feed => `<li><a href="${feed.path}">Flux RSS : ${escape(feed.label.toLowerCase())}</a></li>`).join('\n        ')}
+      </ul>
+      <p class="ds-u-text-muted">Sources : ${settings.sources.map(source => `<a href="${escape(source.homepage)}">${escape(source.label)}</a>`).join(', ')}.</p>
     </footer>
   </body>
 </html>

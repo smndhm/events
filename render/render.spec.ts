@@ -45,7 +45,7 @@ describe('renderPage', () => {
 
   it('marks the events first seen recently as new', () => {
     const html = renderPage([event('old'), event('fresh', { firstSeen: '2026-11-10T09:00:00.000Z' })], SETTINGS, NOW);
-    expect(html.match(/class="new"/g)).toHaveLength(1);
+    expect(html.match(/>Nouveau</g)).toHaveLength(1);
   });
 
   it('escapes what the sites write', () => {
@@ -61,8 +61,14 @@ describe('renderPage', () => {
 
   it('puts the details on a line of their own, under the place', () => {
     const html = renderPage([event('film', { category: 'cinema', place: 'Ti Hanok, Auray', details: 'jeu. 12 : 20:30' })], SETTINGS, NOW);
-    expect(html).toContain('Ciné VO</span> Ti Hanok, Auray, 12\u00a0km</p>');
-    expect(html).toContain('<p class="details">jeu. 12 : 20:30</p>');
+    expect(html).toContain('<p class="ds-u-text-muted">Ciné VO · Ti Hanok, Auray, 12\u00a0km</p>');
+    expect(html).toContain('<p class="ds-u-text-muted">jeu. 12 : 20:30</p>');
+  });
+
+  it('is styled by the design system, next to it', () => {
+    const html = renderPage([event('a')], SETTINGS, NOW);
+    expect(html).toContain('<link rel="stylesheet" href="ds/styles.css">');
+    expect(html).toContain('<li class="ds-c-card" data-category="brocante">');
   });
 
   it('says when there is nothing', () => {

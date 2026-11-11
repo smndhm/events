@@ -1,10 +1,13 @@
-// pnpm test:a11y: renders the page from the Brocabrac page of __fixtures__, plus a film so it has two categories and its
+// pnpm test:a11y: writes the site, with the design system, from the Brocabrac page of __fixtures__, plus a film so it has two categories and its
 // filter, then runs axe on it (@dume/dev-config/a11y) in light and dark, and checks the filter hides what it leaves out.
 // Needs Playwright's Chromium (pnpm exec playwright install chromium), or another one at CHROMIUM_PATH.
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { audit } from '@dume/dev-config/a11y';
 import { chromium } from 'playwright';
-import { renderPage } from './render/page.ts';
+import { writeSite } from './render/site.ts';
 import { joinDays, parsePage } from './sources/brocabrac.ts';
 import type { KnownEvent } from './types.ts';
 
@@ -25,18 +28,18 @@ const events: KnownEvent[] = [
     firstSeen: NOW.toISOString(),
   },
 ];
-const html = renderPage(
-  events,
-  { home: { name: 'Landévant' }, radiusKm: 25, horizonDays: 45, newDays: 2, sources: [{ label: 'Brocabrac', homepage: 'https://brocabrac.fr/56/' }] },
-  NOW,
-);
+// Written as the build writes it, with the design system's stylesheet next to the page
+const dir = mkdtempSync(join(tmpdir(), 'events-a11y-'));
+const settings = { home: { name: 'Landévant' }, radiusKm: 25, horizonDays: 45, newDays: 2, siteUrl: 'https://example.org/' };
+writeSite(dir, events, { ...settings, sources: [{ label: 'Brocabrac', homepage: 'https://brocabrac.fr/56/' }] }, NOW);
+const url = pathToFileURL(join(dir, 'index.html')).href;
 
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH });
 const failures: string[] = [];
 try {
   for (const colorScheme of ['light', 'dark'] as const) {
     const page = await browser.newPage({ colorScheme });
-    await page.setContent(html);
+    await page.goto(url);
     failures.push(...(await audit(page)).map(violation => `${colorScheme}: ${violation}`));
 
     await page.getByLabel('Films en VO').check();

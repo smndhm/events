@@ -1,23 +1,15 @@
-// pnpm build: reads every source, then writes the site into _site/ (the page and its feeds) and what it published into
+// pnpm build: reads every source, then writes the site into _site/ (the page, its feeds and the design system) and what it published into
 // the state, for the next run. Exits with 1 when a source failed, after writing everything: the page still goes out,
 // with that source's events of the last run, and the run reddens so it is seen.
-import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { appendFileSync } from 'node:fs';
 import { home, horizonDays, newDays, radiusKm, siteUrl, sources } from './config.ts';
-import { feedPath, renderPage } from './render/page.ts';
-import { renderRss } from './render/rss.ts';
+import { writeSite } from './render/site.ts';
 import { readCache, writeCache } from './utils/cache.ts';
 import { collect, type SourceReport } from './utils/collect.ts';
 import { readState, writeState } from './utils/state.ts';
-import { CATEGORIES, type Category, type KnownEvent } from './types.ts';
+import type { KnownEvent } from './types.ts';
 
 const SITE_DIR = '_site';
-
-const write = (path: string, content: string): void => {
-  const file = join(SITE_DIR, path);
-  mkdirSync(dirname(file), { recursive: true });
-  writeFileSync(file, content);
-};
 
 // What each source gave, at the top of the run's page on GitHub
 const summary = (reports: SourceReport[], events: KnownEvent[], now: Date): string => {
@@ -32,26 +24,7 @@ export default async function build(now: Date = new Date()): Promise<SourceRepor
   const cache = readCache();
   const { events, reports } = await collect(sources, readState(), { home, radiusKm, horizonDays }, cache, now);
 
-  write('index.html', renderPage(events, { home, radiusKm, horizonDays, newDays, sources }, now));
-  const title = `Autour de ${home.name}`;
-  write(feedPath(), renderRss({ title, description: `Ce qui arrive à moins de ${radiusKm} km.`, link: siteUrl, self: `${siteUrl}${feedPath()}` }, events, now));
-  // A feed per category, even an empty one, so a reader subscribed to it never meets a missing page
-  for (const category of Object.keys(CATEGORIES) as Category[]) {
-    const feed = {
-      title: `${title} : ${CATEGORIES[category]}`,
-      description: `${CATEGORIES[category]} à moins de ${radiusKm} km.`,
-      link: siteUrl,
-      self: `${siteUrl}${feedPath(category)}`,
-    };
-    write(
-      feedPath(category),
-      renderRss(
-        feed,
-        events.filter(event => event.category === category),
-        now,
-      ),
-    );
-  }
+  writeSite(SITE_DIR, events, { home, radiusKm, horizonDays, newDays, sources, siteUrl }, now);
   writeState(events);
   writeCache(cache);
 
