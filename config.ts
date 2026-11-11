@@ -20,7 +20,8 @@ export const siteUrl = 'https://smndhm.github.io/events/';
 
 // Every source read on each run. Adding a site means adding one file in sources/ and one line here.
 export const sources: Source[] = [
-  brocabrac({ department: '56' }),
+  // Garage sales and flea markets, not house clearances nor the other kinds the site lists
+  brocabrac({ department: '56', kinds: ['vide-grenier', 'brocante'] }),
   // The films of the coming week in their own language: in original version, or French. Coordinates from
   // api-adresse.data.gouv.fr.
   allocine({
