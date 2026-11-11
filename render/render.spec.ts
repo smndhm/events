@@ -83,6 +83,13 @@ describe('renderPage', () => {
     expect(html).toContain('href="rss/cinema.xml"');
   });
 
+  it("opens today's categories, and folds the others", () => {
+    const html = renderPage([event('today', { start: '2026-11-11T20:00:00+01:00' }), event('sunday')], SETTINGS, NOW);
+    const [today = '', sunday = ''] = html.split('<section class="day"').slice(1);
+    expect(today).toContain('<details class="day__category" data-category="brocante" open>');
+    expect(sunday).toContain('<details class="day__category" data-category="brocante">');
+  });
+
   it('lists a film under each day it is shown, with the showtimes of that day only', () => {
     const html = renderPage(
       [event('film', { category: 'cinema', start: '2026-11-11T15:45:00+01:00', place: 'Ti Hanok (Auray), CGR Lanester', showings: SHOWINGS })],

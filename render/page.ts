@@ -81,9 +81,15 @@ const byTimeThenDistance = (day: string): ((a: KnownEvent, b: KnownEvent) => num
   return (a, b) => rank(a) - rank(b) || clock(a).localeCompare(clock(b)) || (a.distance ?? Infinity) - (b.distance ?? Infinity);
 };
 
-// A day's events of one category, folded: its summary names the category and counts its events, which page.js counts
-// again as they pass
-const renderCategory = (category: Category, events: KnownEvent[], day: string, now: Date, newDays: number): string => `<details class="day__category" data-category="${category}">
+// A day's events of one category, folded, but for today's, open: its summary names the category and counts its events,
+// which page.js counts again as they pass
+const renderCategory = (
+  category: Category,
+  events: KnownEvent[],
+  day: string,
+  now: Date,
+  newDays: number,
+): string => `<details class="day__category" data-category="${category}"${day === parisDay(now) ? ' open' : ''}>
           <summary><strong>${CATEGORIES[category]}</strong> <small class="ds-u-text-muted">(<span class="day__count">${events.length}</span>)</small></summary>
           <ul class="ds-l-stack" role="list">
             ${events

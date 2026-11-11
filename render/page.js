@@ -5,6 +5,7 @@
 //   without any cinema that day ends at its last showtime, so it is hidden as an event.
 // - A day's category counts its events left, and is hidden without any; a day counts all of them, and is hidden without
 //   any. The days are named again: after midnight, "Demain" is "Aujourd'hui".
+// - Today's categories are open, once, as the page opens.
 // Then again every minute, while the page is open. A classic script, deferred: a module would not run from a file.
 
 const TIME_ZONE = 'Europe/Paris';
@@ -61,5 +62,12 @@ const hidePast = (page, now = new Date()) => {
   }
 };
 
+// Today's categories open, read after midnight too: once, as the page opens, not to open again every minute what the
+// visitor folded
+const openToday = (page, now = new Date()) => {
+  for (const category of page.querySelectorAll(`.day[data-day="${parisDay(now)}"] .day__category`)) category.open = true;
+};
+
+openToday(document);
 hidePast(document);
 setInterval(() => hidePast(document), 60_000);
