@@ -1,7 +1,7 @@
 // The page, built with the design system, @dume/ds: its layout, its card for each event, its stack for each day's list,
 // its footer and its utilities. render/site.ts copies its stylesheet and fonts next to the page, as ds/.
 import { dayTitle, escape, listedOn, showingDay, time, when, where } from './format.ts';
-import { eventCalendar, googleCalendarUrl, icsPath, screeningCalendar, type CalendarEvent } from './ics.ts';
+import { icsPath, screeningKey } from './ics.ts';
 import { isDayOnly, parisDay } from '../utils/dates.ts';
 import { CATEGORIES, type Category, type KnownEvent, type Source } from '../types.ts';
 
@@ -21,12 +21,11 @@ const isNew = (event: KnownEvent, now: Date, newDays: number): boolean => now.ge
 
 const plural = (count: number, word: string): string => `${count} ${word}${count > 1 ? 's' : ''}`;
 
-// A link that adds an event or a showtime to Google Calendar, its hidden text saying so, "20:30" alone not saying it
-const googleLink = (calendar: CalendarEvent, text: string, hint: string): string =>
-  `<a href="${escape(googleCalendarUrl(calendar))}">${escape(text)}<span class="ds-u-visually-hidden">${escape(hint)}</span></a>`;
+// A link to the calendar file of an event or a showtime, its hidden text saying what it does, "20:30" alone not saying it
+const calendarLink = (key: string, text: string, hint: string): string => `<a href="${icsPath(key)}">${escape(text)}<span class="ds-u-visually-hidden">${escape(hint)}</span></a>`;
 
 // A film's cinemas, the nearest first, each folded, then each of its days folded: a day shows its times, each a link
-// adding that showtime to Google Calendar, and the cinema's showtimes that day on Allociné
+// adding that showtime to the calendar, and the cinema's showtimes that day on Allociné
 const renderShowings = (event: KnownEvent): string => `
             <ul class="showings" role="list">
               ${(event.showings ?? [])
@@ -40,7 +39,7 @@ const renderShowings = (event: KnownEvent): string => `
                         ({ day, url, times }) => `<li>
                       <details class="showings__day">
                         <summary class="showings__summary">${showingDay(day)} <span class="ds-u-text-muted">· ${plural(times.length, 'séance')}</span></summary>
-                        <p class="showings__times">${times.map(at => googleLink(screeningCalendar(event, showing, at), time(at), ', ajouter la séance à Google Agenda')).join(', ')}</p>
+                        <p class="showings__times">${times.map(at => calendarLink(screeningKey(event, showing, at), time(at), ", ajouter la séance à l'agenda")).join(', ')}</p>
                         <p class="showings__link"><a href="${escape(url)}">Séances du jour sur Allociné<span class="ds-u-visually-hidden"> : ${escape(showing.place)}, ${showingDay(day)}</span></a></p>
                       </details>
                     </li>`,
@@ -62,9 +61,7 @@ const renderEvent = (event: KnownEvent, now: Date, newDays: number): string => {
   return `<li class="ds-c-card event" data-category="${event.category}">
             <p class="event__title"><a href="${escape(event.url)}">${escape(event.title)}</a>${isNew(event, now, newDays) ? ' <strong class="ds-u-text-primary event__new">Nouveau</strong>' : ''}</p>
             <p class="ds-u-text-muted event__meta">${escape(meta)}</p>${
-              event.showings
-                ? renderShowings(event)
-                : `\n            <p class="event__meta">${googleLink(eventCalendar(event), 'Ajouter à Google Agenda', ` : ${event.title}`)} <span class="ds-u-text-muted">·</span> <a href="${icsPath(event.id)}">autre agenda (.ics)<span class="ds-u-visually-hidden"> : ${escape(event.title)}</span></a></p>`
+              event.showings ? renderShowings(event) : `\n            <p class="event__meta">${calendarLink(event.id, "Ajouter à l'agenda", ` : ${event.title}`)}</p>`
             }
           </li>`;
 };
@@ -132,7 +129,7 @@ export const renderPage = (events: KnownEvent[], settings: PageSettings, now: Da
       <hgroup>
         <h1>${escape(title)}</h1>
         <p class="ds-u-text-muted">Ce qui arrive dans les ${settings.horizonDays} prochains jours, à moins de ${settings.radiusKm}&nbsp;km. Mis à jour le ${updatedFormat.format(now)}.</p>
-        <p class="ds-u-text-muted">Un événement, ou l'horaire d'une séance, s'ajoute à Google Agenda d'un clic.</p>
+        <p class="ds-u-text-muted">Un événement, ou l'horaire d'une séance, s'ajoute à votre agenda d'un clic.</p>
       </hgroup>
       ${events.length === 0 ? '<p>Rien de prévu pour le moment.</p>' : [...(categories.length > 1 ? [renderFilters(events, categories)] : []), ...sections].join('\n      ')}
     </main>

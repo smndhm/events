@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { eventCalendar, googleCalendarUrl, icsPath, renderIcs, screeningCalendar } from './ics.ts';
+import { eventCalendar, icsPath, renderIcs, screeningCalendar } from './ics.ts';
 import type { KnownEvent, Showing } from '../types.ts';
 
 const NOW = new Date('2026-11-11T09:00:00Z');
@@ -80,24 +80,5 @@ describe('icsPath', () => {
     expect(icsPath('a')).toMatch(/^ics\/[0-9a-f]{16}\.ics$/);
     expect(icsPath('a')).toBe(icsPath('a'));
     expect(icsPath('a')).not.toBe(icsPath('b'));
-  });
-});
-
-describe('googleCalendarUrl', () => {
-  it('fills in the form of Google Calendar, in UTC', () => {
-    const url = new URL(googleCalendarUrl(eventCalendar(event())));
-    expect(url.origin + url.pathname).toBe('https://calendar.google.com/calendar/render');
-    expect(Object.fromEntries(url.searchParams)).toEqual({
-      action: 'TEMPLATE',
-      text: 'Vide grenier, troc; et puces',
-      dates: '20261115T070000Z/20261115T170000Z',
-      details: 'https://brocabrac.fr/56/x/1-x',
-      location: '2 rue du Port, Hennebont',
-      ctz: 'Europe/Paris',
-    });
-  });
-
-  it('gives whole days, the end the day after the last', () => {
-    expect(new URL(googleCalendarUrl(eventCalendar(event({ start: '2026-12-19', end: undefined })))).searchParams.get('dates')).toBe('20261219/20261220');
   });
 });

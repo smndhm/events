@@ -17,7 +17,7 @@ describe('writeSite', () => {
 });
 
 describe('writeSite, with events', () => {
-  it('writes a calendar file per event, but none for the showtimes of a film, which link to Google Calendar', () => {
+  it('writes a calendar file per event, and per showtime of a film', () => {
     const dir = mkdtempSync(join(tmpdir(), 'events-site-'));
     const base = { source: 's', title: 'A', start: '2026-11-15', place: 'Auray', url: 'https://example.org/', firstSeen: '2026-11-11T09:00:00.000Z' };
     const showing = {
@@ -34,6 +34,6 @@ describe('writeSite, with events', () => {
       { home: { name: 'Landévant' }, radiusKm: 25, horizonDays: 45, newDays: 2, sources: [], siteUrl: 'https://example.org/' },
       new Date('2026-11-11T09:00:00Z'),
     );
-    expect(readdirSync(join(dir, 'ics'))).toHaveLength(1);
+    expect(readdirSync(join(dir, 'ics'))).toHaveLength(3);
   });
 });

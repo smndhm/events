@@ -1,5 +1,5 @@
-// An event for a calendar: a link to Google Calendar's form to add it, and a calendar file (iCalendar, RFC 5545) for
-// any other calendar (Apple, Outlook, Thunderbird...).
+// An event in a calendar file (iCalendar, RFC 5545), the standard every calendar reads (Apple, Google, Outlook,
+// Thunderbird...): one file per event or film showtime, which a link adds to the visitor's calendar.
 import { createHash } from 'node:crypto';
 import { addDays, isDayOnly } from '../utils/dates.ts';
 import type { KnownEvent, Showing } from '../types.ts';
@@ -61,14 +61,6 @@ const span = ({ start, end }: CalendarEvent): { allDay: boolean; start: string; 
 const dates = (event: CalendarEvent): string[] => {
   const { allDay, start, end } = span(event);
   return allDay ? [`DTSTART;VALUE=DATE:${start}`, `DTEND;VALUE=DATE:${end}`] : [`DTSTART:${start}`, `DTEND:${end}`];
-};
-
-// Google Calendar's form to add the event, filled in
-export const googleCalendarUrl = (event: CalendarEvent): string => {
-  const { start, end } = span(event);
-  const params = new URLSearchParams({ action: 'TEMPLATE', text: event.title, dates: `${start}/${end}`, details: event.url, ctz: 'Europe/Paris' });
-  if (event.location) params.set('location', event.location);
-  return `https://calendar.google.com/calendar/render?${params}`;
 };
 
 export const renderIcs = (event: CalendarEvent, now: Date): string =>

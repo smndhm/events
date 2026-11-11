@@ -84,7 +84,7 @@ describe('renderPage', () => {
     expect(html).toContain('<summary class="showings__summary"><strong>Ti Hanok (Auray)</strong> <span class="ds-u-text-muted">14&nbsp;km · 2 jours</span></summary>');
     expect(html).toContain('<summary class="showings__summary">mer.\u00a011 <span class="ds-u-text-muted">· 2 séances</span></summary>');
     expect(html).toMatch(
-      /<p class="showings__times"><a href="https:\/\/calendar\.google\.com\/calendar\/render\?action=TEMPLATE&#38;text=film&#38;dates=20261111T144500Z%2F20261111T164500Z[^"]*">15:45<span class="ds-u-visually-hidden">, ajouter la séance à Google Agenda<\/span><\/a>, <a [^>]+>18:00/,
+      /<p class="showings__times"><a href="ics\/[0-9a-f]{16}\.ics">15:45<span class="ds-u-visually-hidden">, ajouter la séance à l&#39;agenda<\/span><\/a>, <a href="ics\/[0-9a-f]{16}\.ics">18:00/,
     );
     expect(html).toContain(
       '<a href="https://example.org/ti-hanok#2026-11-11">Séances du jour sur Allociné<span class="ds-u-visually-hidden"> : Ti Hanok (Auray), mer.\u00a011</span></a>',
@@ -92,12 +92,10 @@ describe('renderPage', () => {
     expect(html).toContain('<a href="https://example.org/ti-hanok">Toutes ses séances sur Allociné<span class="ds-u-visually-hidden"> : Ti Hanok (Auray)</span></a>');
   });
 
-  it('adds an event to Google Calendar, or to another calendar with its file', () => {
-    const html = renderPage([event('fair')], SETTINGS, NOW);
-    expect(html).toMatch(
-      /<a href="https:\/\/calendar\.google\.com\/calendar\/render\?action=TEMPLATE&#38;text=fair[^"]*">Ajouter à Google Agenda<span class="ds-u-visually-hidden"> : fair<\/span><\/a>/,
+  it('adds an event to the calendar with its file', () => {
+    expect(renderPage([event('fair')], SETTINGS, NOW)).toMatch(
+      /<p class="event__meta"><a href="ics\/[0-9a-f]{16}\.ics">Ajouter à l&#39;agenda<span class="ds-u-visually-hidden"> : fair<\/span><\/a><\/p>/,
     );
-    expect(html).toMatch(/<a href="ics\/[0-9a-f]{16}\.ics">autre agenda \(\.ics\)<span class="ds-u-visually-hidden"> : fair<\/span><\/a>/);
   });
 
   it('orders a day: the events already started, then those of the whole day, then by time, the nearest first', () => {
