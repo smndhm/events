@@ -5,7 +5,14 @@ import { icsPath, screeningKey } from './ics.ts';
 import { addDays, isDayOnly, lastDay, parisDay, withParisOffset } from '../utils/dates.ts';
 import { CATEGORIES, type Category, type KnownEvent, type Source } from '../types.ts';
 
+// The page's stylesheets and script, at the addresses to load them from, such as `page.js?v=1a2b3c4d`: a version from
+// each file's content, so a browser never mixes a new page with a file it kept from the last one (render/site.ts)
+export type Assets = { ds: string; css: string; js: string };
+
+const PLAIN_ASSETS: Assets = { ds: 'ds/styles.css', css: 'page.css', js: 'page.js' };
+
 export type PageSettings = {
+  assets?: Assets;
   home: { name: string };
   radiusKm: number;
   horizonDays: number;
@@ -38,11 +45,16 @@ const renderShowings = (event: KnownEvent): string => `
                 .join('\n              ')}
             </ul>`;
 
-// The days an event is listed under, and what it is on each. A film is under each day it is shown, with that day's
-// showtimes only, from its first to its last of the day; any other event under one day, its first or today.
-const listings = (event: KnownEvent, today: string): [string, KnownEvent][] => {
+// The days an event is listed under, and what it is on each, up to `horizon`. A film is under each day it is shown, with
+// that day's showtimes only, from its first to its last of the day. Any other event is under each day it is on, from its
+// first, or today when it started before, to its last: a festival until Saturday is under tomorrow too.
+const listings = (event: KnownEvent, today: string, horizon: string): [string, KnownEvent][] => {
   const { showings } = event;
-  if (!showings) return [[listedOn(event, today), event]];
+  if (!showings) {
+    const days: string[] = [];
+    for (let day = listedOn(event, today); day <= lastDay(event) && day <= horizon; day = addDays(day, 1)) days.push(day);
+    return days.map(day => [day, event]);
+  }
   const days = [...new Set(showings.flatMap(showing => showing.days.map(({ day }) => day)))].filter(day => day >= today).toSorted();
   return days.map(day => {
     const ofDay = showings.map(showing => ({ ...showing, days: showing.days.filter(shown => shown.day === day) })).filter(showing => showing.days.length > 0);
@@ -60,10 +72,18 @@ export const endsAt = (event: KnownEvent): string => {
   return new Date(new Date(event.start).getTime() + 2 * 3_600_000).toISOString();
 };
 
-const renderEvent = (event: KnownEvent, now: Date, newDays: number): string => {
+// When an event is over on one of its days, for page.js to hide it there: at its end on its last day, at midnight on the
+// others, which are then gone by
+export const endsOn = (event: KnownEvent, day: string): string => {
+  const ends = endsAt(event);
+  const midnight = withParisOffset(`${addDays(day, 1)}T00:00:00`);
+  return new Date(ends) < new Date(midnight) ? ends : midnight;
+};
+
+const renderEvent = (event: KnownEvent, day: string, now: Date, newDays: number): string => {
   // Its category is the folded list it is in: its line says when and where; a film's showtimes say both
   const meta = event.showings ? '' : [when(event), where(event)].filter(Boolean).join(' · ');
-  return `<li class="ds-c-card event" data-category="${event.category}" data-ends="${endsAt(event)}">
+  return `<li class="ds-c-card event" data-category="${event.category}" data-ends="${endsOn(event, day)}">
             <p class="event__title"><a href="${escape(event.url)}">${escape(event.title)}</a>${isNew(event, now, newDays) ? ' <span class="ds-c-tag">Nouveau</span>' : ''}</p>
             ${meta ? `<p class="ds-u-text-muted event__meta">${escape(meta)}</p>` : ''}${
               event.showings
@@ -94,7 +114,7 @@ const renderCategory = (
           <ul class="ds-l-stack" role="list">
             ${events
               .toSorted(byTimeThenDistance(day))
-              .map(event => renderEvent(event, now, newDays))
+              .map(event => renderEvent(event, day, now, newDays))
               .join('\n            ')}
           </ul>
         </details>`;
@@ -103,11 +123,12 @@ export const feedPath = (category?: Category): string => (category ? `rss/${cate
 
 export const renderPage = (events: KnownEvent[], settings: PageSettings, now: Date): string => {
   const today = parisDay(now);
+  const assets = settings.assets ?? PLAIN_ASSETS;
   const title = `Autour de ${settings.home.name}`;
   const categories = (Object.keys(CATEGORIES) as Category[]).filter(category => events.some(event => event.category === category));
   const days = [
     ...Map.groupBy(
-      events.flatMap(event => listings(event, today)),
+      events.flatMap(event => listings(event, today, addDays(today, settings.horizonDays))),
       ([day]) => day,
     ),
   ]
@@ -138,9 +159,9 @@ export const renderPage = (events: KnownEvent[], settings: PageSettings, now: Da
     ${feeds.map(feed => `<link rel="alternate" type="application/rss+xml" title="${escape(`${title} : ${feed.label}`)}" href="${feed.path}">`).join('\n    ')}
     <link rel="preload" href="ds/fonts/bricolage-grotesque-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
     <!-- The design system, @dume/ds: all of the page's style, but what is its own -->
-    <link rel="stylesheet" href="ds/styles.css">
+    <link rel="stylesheet" href="${assets.ds}">
     <!-- What is the page's own, over it: its days, their categories and its events (render/page.css) -->
-    <link rel="stylesheet" href="page.css">
+    <link rel="stylesheet" href="${assets.css}">
   </head>
   <body class="ds-l-page ds-l-page--full-height">
     <main id="main" class="ds-l-page__main">
@@ -158,7 +179,7 @@ export const renderPage = (events: KnownEvent[], settings: PageSettings, now: Da
       <p class="ds-u-text-muted">Sources : ${settings.sources.map(source => `<a href="${escape(source.homepage)}">${escape(source.label)}</a>`).join(', ')}.</p>
     </footer>
     <!-- What has passed, hidden as the page is read: without it, everything as built (render/page.js) -->
-    <script src="page.js" defer></script>
+    <script src="${assets.js}" defer></script>
   </body>
 </html>
 `;
