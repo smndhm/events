@@ -53,7 +53,8 @@
 
 /* A film's cinemas, the nearest first, each folded, then each of its days: one under the other, a little apart */
 .showings {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   padding: 0;
   margin: 0;
   gap: var(--ds-b-size-8);
@@ -67,7 +68,8 @@
 
 /* A cinema's days, under its name, set in from it */
 .showings__days {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   padding: 0;
   margin: 0;
   gap: var(--ds-b-size-4);
