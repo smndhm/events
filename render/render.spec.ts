@@ -78,24 +78,41 @@ describe('renderPage', () => {
     expect(html).toContain('href="rss/cinema.xml"');
   });
 
-  it('lists the cinemas of a film, each with its days and their times, and its links', () => {
+  it('folds each cinema of a film, then each of its days, with their links', () => {
     const html = renderPage([event('film', { category: 'cinema', place: 'Ti Hanok (Auray), CGR Lanester', showings: SHOWINGS })], SETTINGS, NOW);
     expect(html).toContain('<p class="ds-u-text-muted event__meta">Ciné · 2 cinémas</p>');
-    expect(html).toContain(
-      '<p class="showings__name"><a href="https://example.org/ti-hanok">Ti Hanok (Auray)<span class="ds-u-visually-hidden">, toutes les séances</span></a> <span class="ds-u-text-muted">· 14&nbsp;km</span></p>',
-    );
-    expect(html).toContain(
-      '<dt class="showings__day"><a href="https://example.org/ti-hanok#2026-11-11">mer.\u00a011<span class="ds-u-visually-hidden">, séances du jour à Ti Hanok (Auray)</span></a></dt>',
-    );
+    expect(html).toContain('<summary class="showings__summary"><strong>Ti Hanok (Auray)</strong> <span class="ds-u-text-muted">14&nbsp;km · 2 jours</span></summary>');
+    expect(html).toContain('<summary class="showings__summary">mer.\u00a011 <span class="ds-u-text-muted">· 2 séances</span></summary>');
     expect(html).toMatch(
-      /<dd class="showings__times"><a href="ics\/[0-9a-f]{16}\.ics">15:45<span class="ds-u-visually-hidden">, ajouter la séance à l'agenda<\/span><\/a>, <a href="ics\/[0-9a-f]{16}\.ics">18:00/,
+      /<p class="showings__times"><a href="https:\/\/calendar\.google\.com\/calendar\/render\?action=TEMPLATE&#38;text=film&#38;dates=20261111T144500Z%2F20261111T164500Z[^"]*">15:45<span class="ds-u-visually-hidden">, ajouter la séance à Google Agenda<\/span><\/a>, <a [^>]+>18:00/,
     );
+    expect(html).toContain(
+      '<a href="https://example.org/ti-hanok#2026-11-11">Séances du jour sur Allociné<span class="ds-u-visually-hidden"> : Ti Hanok (Auray), mer.\u00a011</span></a>',
+    );
+    expect(html).toContain('<a href="https://example.org/ti-hanok">Toutes ses séances sur Allociné<span class="ds-u-visually-hidden"> : Ti Hanok (Auray)</span></a>');
   });
 
-  it('adds an event to the calendar with a link', () => {
-    expect(renderPage([event('fair')], SETTINGS, NOW)).toMatch(
-      /<p class="event__meta"><a href="ics\/[0-9a-f]{16}\.ics">Ajouter à l'agenda<span class="ds-u-visually-hidden"> : fair<\/span><\/a><\/p>/,
+  it('adds an event to Google Calendar, or to another calendar with its file', () => {
+    const html = renderPage([event('fair')], SETTINGS, NOW);
+    expect(html).toMatch(
+      /<a href="https:\/\/calendar\.google\.com\/calendar\/render\?action=TEMPLATE&#38;text=fair[^"]*">Ajouter à Google Agenda<span class="ds-u-visually-hidden"> : fair<\/span><\/a>/,
     );
+    expect(html).toMatch(/<a href="ics\/[0-9a-f]{16}\.ics">autre agenda \(\.ics\)<span class="ds-u-visually-hidden"> : fair<\/span><\/a>/);
+  });
+
+  it('orders a day: the events already started, then those of the whole day, then by time, the nearest first', () => {
+    const html = renderPage(
+      [
+        event('late', { start: '2026-11-15T20:00:00+01:00' }),
+        event('far-morning', { start: '2026-11-15T10:00:00+01:00', distance: 20 }),
+        event('near-morning', { start: '2026-11-15T10:00:00+01:00', distance: 5 }),
+        event('all-day', { start: '2026-11-15', end: undefined }),
+      ],
+      SETTINGS,
+      NOW,
+    );
+    const order = ['all-day', 'near-morning', 'far-morning', 'late'].map(id => html.indexOf(`>${id}<`));
+    expect(order).toEqual(order.toSorted((a, b) => a - b));
   });
 
   it('is styled by the design system, next to it', () => {

@@ -1,7 +1,7 @@
 import { cpSync, mkdirSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
-import { eventCalendar, icsPath, renderIcs, screeningCalendar, screeningKey } from './ics.ts';
+import { eventCalendar, icsPath, renderIcs } from './ics.ts';
 import { feedPath, renderPage, type PageSettings } from './page.ts';
 import { renderRss } from './rss.ts';
 import { CATEGORIES, type Category, type KnownEvent } from '../types.ts';
@@ -21,14 +21,9 @@ export const writeSite = (dir: string, events: KnownEvent[], settings: SiteSetti
   };
 
   write('index.html', renderPage(events, settings, now));
-  // A calendar file per event, and per showtime of a film
+  // A calendar file per event, for the calendars other than Google's; a film's showtimes link to Google Calendar only
   for (const event of events) {
     if (!event.showings) write(icsPath(event.id), renderIcs(eventCalendar(event), now));
-    for (const showing of event.showings ?? []) {
-      for (const at of showing.days.flatMap(({ times }) => times)) {
-        write(icsPath(screeningKey(event, showing, at)), renderIcs(screeningCalendar(event, showing, at), now));
-      }
-    }
   }
   cpSync(join(DS_DIST, 'styles.css'), join(dir, 'ds', 'styles.css'));
   cpSync(join(DS_DIST, 'fonts'), join(dir, 'ds', 'fonts'), { recursive: true });

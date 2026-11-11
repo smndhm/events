@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { eventCalendar, icsPath, renderIcs, screeningCalendar, screeningKey } from './ics.ts';
+import { eventCalendar, googleCalendarUrl, icsPath, renderIcs, screeningCalendar } from './ics.ts';
 import type { KnownEvent, Showing } from '../types.ts';
 
 const NOW = new Date('2026-11-11T09:00:00Z');
@@ -68,10 +68,36 @@ describe('screeningCalendar', () => {
     );
   });
 
-  it('has a file and an id of its own for each showtime', () => {
+  it('has an id of its own for each showtime', () => {
     const film = event({ id: 'allocine:1' });
-    const paths = ['2026-11-12T20:30:00+01:00', '2026-11-12T22:30:00+01:00'].map(at => icsPath(screeningKey(film, showing, at)));
-    expect(new Set(paths).size).toBe(2);
-    expect(paths[0]).toMatch(/^ics\/[0-9a-f]{16}\.ics$/);
+    const uids = ['2026-11-12T20:30:00+01:00', '2026-11-12T22:30:00+01:00'].map(at => screeningCalendar(film, showing, at).uid);
+    expect(new Set(uids).size).toBe(2);
+  });
+});
+
+describe('icsPath', () => {
+  it('is a file of its own for each event, the same from one run to the next', () => {
+    expect(icsPath('a')).toMatch(/^ics\/[0-9a-f]{16}\.ics$/);
+    expect(icsPath('a')).toBe(icsPath('a'));
+    expect(icsPath('a')).not.toBe(icsPath('b'));
+  });
+});
+
+describe('googleCalendarUrl', () => {
+  it('fills in the form of Google Calendar, in UTC', () => {
+    const url = new URL(googleCalendarUrl(eventCalendar(event())));
+    expect(url.origin + url.pathname).toBe('https://calendar.google.com/calendar/render');
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      action: 'TEMPLATE',
+      text: 'Vide grenier, troc; et puces',
+      dates: '20261115T070000Z/20261115T170000Z',
+      details: 'https://brocabrac.fr/56/x/1-x',
+      location: '2 rue du Port, Hennebont',
+      ctz: 'Europe/Paris',
+    });
+  });
+
+  it('gives whole days, the end the day after the last', () => {
+    expect(new URL(googleCalendarUrl(eventCalendar(event({ start: '2026-12-19', end: undefined })))).searchParams.get('dates')).toBe('20261219/20261220');
   });
 });

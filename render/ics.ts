@@ -1,5 +1,5 @@
-// An event in a calendar file (iCalendar, RFC 5545), one file per event or film showtime: a link to it adds it to the
-// visitor's calendar, whichever it is (Apple, Google, Outlook, Thunderbird...).
+// An event for a calendar: a link to Google Calendar's form to add it, and a calendar file (iCalendar, RFC 5545) for
+// any other calendar (Apple, Outlook, Thunderbird...).
 import { createHash } from 'node:crypto';
 import { addDays, isDayOnly } from '../utils/dates.ts';
 import type { KnownEvent, Showing } from '../types.ts';
@@ -47,15 +47,28 @@ const utc = (date: Date): string =>
 
 const dayValue = (day: string): string => day.replace(/-/g, '');
 
-const dates = ({ start, end }: CalendarEvent): string[] => {
+// Its start and end: whole days, the end the day after the last, or times in UTC
+const span = ({ start, end }: CalendarEvent): { allDay: boolean; start: string; end: string } => {
   if (isDayOnly(start)) {
-    // A whole day ends the next day, which it does not include
     const last = end && isDayOnly(end) && end > start ? end : start;
-    return [`DTSTART;VALUE=DATE:${dayValue(start)}`, `DTEND;VALUE=DATE:${dayValue(addDays(last, 1))}`];
+    return { allDay: true, start: dayValue(start), end: dayValue(addDays(last, 1)) };
   }
   const startDate = new Date(start);
   const endDate = end && !isDayOnly(end) && new Date(end) > startDate ? new Date(end) : new Date(startDate.getTime() + DEFAULT_MINUTES * 60_000);
-  return [`DTSTART:${utc(startDate)}`, `DTEND:${utc(endDate)}`];
+  return { allDay: false, start: utc(startDate), end: utc(endDate) };
+};
+
+const dates = (event: CalendarEvent): string[] => {
+  const { allDay, start, end } = span(event);
+  return allDay ? [`DTSTART;VALUE=DATE:${start}`, `DTEND;VALUE=DATE:${end}`] : [`DTSTART:${start}`, `DTEND:${end}`];
+};
+
+// Google Calendar's form to add the event, filled in
+export const googleCalendarUrl = (event: CalendarEvent): string => {
+  const { start, end } = span(event);
+  const params = new URLSearchParams({ action: 'TEMPLATE', text: event.title, dates: `${start}/${end}`, details: event.url, ctz: 'Europe/Paris' });
+  if (event.location) params.set('location', event.location);
+  return `https://calendar.google.com/calendar/render?${params}`;
 };
 
 export const renderIcs = (event: CalendarEvent, now: Date): string =>
