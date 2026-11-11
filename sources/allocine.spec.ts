@@ -38,7 +38,7 @@ describe('toEvents', () => {
       end: '2026-11-13T20:10:00+01:00',
       place: 'CGR Lanester',
       url: 'https://www.allocine.fr/seance/salle_gen_csalle=P9556.html',
-      details: 'jeu.\u00a012\u00a0: 13:40, 20:10 · ven.\u00a013\u00a0: 20:10',
+      details: 'jeu.\u00a012\u00a0:\u00a013:40, 20:10 · ven.\u00a013\u00a0:\u00a020:10',
     });
   });
 
@@ -50,7 +50,7 @@ describe('toEvents', () => {
 
 describe('describeShowtimes', () => {
   it('groups the times by day, in Paris time', () => {
-    expect(describeShowtimes(['2026-07-01T22:30:00+02:00', '2026-07-01T14:00:00+02:00'])).toBe('mer.\u00a01\u00a0: 14:00, 22:30');
+    expect(describeShowtimes(['2026-07-01T22:30:00+02:00', '2026-07-01T14:00:00+02:00'])).toBe('mer.\u00a01\u00a0:\u00a014:00, 22:30');
   });
 });
 

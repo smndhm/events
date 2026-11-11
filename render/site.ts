@@ -10,7 +10,7 @@ export type SiteSettings = PageSettings & { siteUrl: string };
 // The design system's stylesheet and the fonts it loads, from the package's dist/
 const DS_DIST = dirname(createRequire(import.meta.url).resolve('@dume/ds/styles.css'));
 
-// Writes the site in `dir`: the page, its feeds, and the design system next to them, as ds/
+// Writes the site in `dir`: the page and its own stylesheet, its feeds, and the design system next to them, as ds/
 export const writeSite = (dir: string, events: KnownEvent[], settings: SiteSettings, now: Date): void => {
   const write = (path: string, content: string): void => {
     const file = join(dir, path);
@@ -21,6 +21,7 @@ export const writeSite = (dir: string, events: KnownEvent[], settings: SiteSetti
   write('index.html', renderPage(events, settings, now));
   cpSync(join(DS_DIST, 'styles.css'), join(dir, 'ds', 'styles.css'));
   cpSync(join(DS_DIST, 'fonts'), join(dir, 'ds', 'fonts'), { recursive: true });
+  cpSync(new URL('page.css', import.meta.url), join(dir, 'page.css'));
 
   const title = `Autour de ${settings.home.name}`;
   const { siteUrl, radiusKm } = settings;

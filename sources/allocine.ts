@@ -44,7 +44,7 @@ const timeFormat = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '
 export const describeShowtimes = (times: string[]): string =>
   [...Map.groupBy(times.toSorted(), time => parisDay(time))]
     // A day and its first time are kept on one line: only between the times and between the days can a line break
-    .map(([, day]) => `${dayFormat.format(new Date(day[0] ?? '')).replace(' ', '\u00a0')}\u00a0: ${day.map(time => timeFormat.format(new Date(time))).join(', ')}`)
+    .map(([, day]) => `${dayFormat.format(new Date(day[0] ?? '')).replace(' ', '\u00a0')}\u00a0:\u00a0${day.map(time => timeFormat.format(new Date(time))).join(', ')}`)
     .join(' · ');
 
 export const toEvents = (theater: Theater, screenings: Screening[]): Event[] =>

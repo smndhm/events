@@ -10,8 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:a11y": "node ./a11y.ts",
-    "lint": "prettier . --check && oxlint && dev-config sync --check",
-    "lint:fix": "prettier . --write && oxlint --fix",
+    "lint": "prettier . --check && oxlint && stylelint \"**/*.css\" --ignore-path .gitignore && dev-config sync --check",
+    "lint:fix": "prettier . --write && oxlint --fix && stylelint \"**/*.css\" --ignore-path .gitignore --fix",
     "prepare": "dev-config hooks"
   },
   "author": "smndhm",
@@ -23,6 +23,7 @@
     "oxlint": "1.92.0",
     "playwright": "1.65.0",
     "prettier": "3.9.10",
+    "stylelint": "17.16.0",
     "typescript": "7.0.2",
     "vitest": "5.1.0"
   },

@@ -11,7 +11,7 @@ The [Site](.github/workflows/site.yml) workflow runs every morning, and on every
 
 1. Each source of [`config.ts`](config.ts) reads its site and returns its events, all in the same shape (`Event` in [`types.ts`](types.ts)).
 2. [`utils/collect.ts`](utils/collect.ts) keeps the events not over yet, starting within `horizonDays` and within `radiusKm` of `home`, as the crow flies.
-3. The page and the feeds are written in `_site/` ([`render/`](render)) and deployed to GitHub Pages. The page is built with my design system, [`@dume/ds`](https://github.com/smndhm/blu/tree/main/packages/ds): its stylesheet and fonts are copied next to it, as `ds/`, and the page only adds what is its own (the filter, the sticky day headings).
+3. The page and the feeds are written in `_site/` ([`render/`](render)) and deployed to GitHub Pages. The page is built with my design system, [`@dume/ds`](https://github.com/smndhm/blu/tree/main/packages/ds): its stylesheet and fonts are copied next to it, as `ds/`, and the page only adds what is its own, in [`render/page.css`](render/page.css): its filter, its days and its events, in BEM, checked by Stylelint with @dume/dev-config's configuration.
 4. What was published goes to the `events-state` branch, with the day each event was first seen: it is how the feeds and the "Nouveau" mark know what is new. Next to it, the page cache ([`utils/cache.ts`](utils/cache.ts)): what a source made of each page it read, so a site of hundreds of pages is only read for those that changed.
 
 A source that fails does not take the others down: its events of the last run are kept, the site still goes out, and the run is red so it is seen. Its summary, at the top of the run's page, says what each source gave.

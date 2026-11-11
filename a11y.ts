@@ -43,7 +43,7 @@ try {
     failures.push(...(await audit(page)).map(violation => `${colorScheme}: ${violation}`));
 
     await page.getByLabel('Films en VO').check();
-    const visible = await page.locator('li:visible').count();
+    const visible = await page.locator('.event:visible').count();
     if (visible !== 1) failures.push(`${colorScheme}: the film filter shows ${visible} events, not 1`);
     await page.close();
   }

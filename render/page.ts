@@ -21,30 +21,20 @@ const isNew = (event: KnownEvent, now: Date, newDays: number): boolean => now.ge
 const renderEvent = (event: KnownEvent, now: Date, newDays: number): string => {
   // Details, such as a film's showtimes, can run long: on a line of their own, under the place
   const meta = [SHORT_LABELS[event.category], event.details ? '' : when(event), where(event)].filter(Boolean).join(' · ');
-  return `<li class="ds-c-card" data-category="${event.category}">
-            <p><a href="${escape(event.url)}">${escape(event.title)}</a>${isNew(event, now, newDays) ? ' <strong class="ds-u-text-primary">Nouveau</strong>' : ''}</p>
-            <p class="ds-u-text-muted">${escape(meta)}</p>${event.details ? `\n            <p class="ds-u-text-muted">${escape(event.details)}</p>` : ''}
+  return `<li class="ds-c-card event" data-category="${event.category}">
+            <p class="event__title"><a href="${escape(event.url)}">${escape(event.title)}</a>${isNew(event, now, newDays) ? ' <strong class="ds-u-text-primary">Nouveau</strong>' : ''}</p>
+            <p class="ds-u-text-muted event__meta">${escape(meta)}</p>${event.details ? `\n            <p class="ds-u-text-muted event__meta">${escape(event.details)}</p>` : ''}
           </li>`;
 };
 
 // The category filter, once there are two categories to choose from, is a set of radio buttons, and CSS hides what they
-// leave out (:has): it works without a script
-const filterStyles = (categories: Category[]): string =>
-  categories
-    .map(
-      category => `body:has(#filter-${category}:checked) li:not([data-category='${category}']),
-      body:has(#filter-${category}:checked) section:not(:has(li[data-category='${category}'])) {
-        display: none;
-      }`,
-    )
-    .join('\n      ');
-
+// leave out (page.css): it works without a script
 const filterOption = (id: string, label: string, count: number, checked = false): string =>
   `<label><input type="radio" name="filter" id="filter-${id}"${checked ? ' checked' : ''}> ${label} <span class="ds-u-text-muted">(${count})</span></label>`;
 
-const renderFilters = (events: KnownEvent[], categories: Category[]): string => `<fieldset class="ds-c-card filters">
-        <legend>Afficher</legend>
-        <div class="ds-l-cluster">
+const renderFilters = (events: KnownEvent[], categories: Category[]): string => `<fieldset class="ds-c-card filter">
+        <legend class="filter__legend">Afficher</legend>
+        <div class="ds-l-cluster filter__options">
           ${[
             filterOption('all', 'Tout', events.length, true),
             ...categories.map(category => filterOption(category, CATEGORIES[category], events.filter(event => event.category === category).length)),
@@ -62,8 +52,8 @@ export const renderPage = (events: KnownEvent[], settings: PageSettings, now: Da
   const feeds = [{ label: 'Tout', path: feedPath() }, ...categories.map(category => ({ label: CATEGORIES[category], path: feedPath(category) }))];
 
   const sections = days.map(
-    ([day, dayEvents]) => `<section aria-labelledby="day-${day}">
-        <h2 id="day-${day}">${dayTitle(day, today)}</h2>
+    ([day, dayEvents]) => `<section class="day" aria-labelledby="day-${day}">
+        <h2 class="day__heading" id="day-${day}">${dayTitle(day, today)}</h2>
         <ul class="ds-l-stack" role="list">
           ${dayEvents.map(event => renderEvent(event, now, settings.newDays)).join('\n          ')}
         </ul>
@@ -79,38 +69,10 @@ export const renderPage = (events: KnownEvent[], settings: PageSettings, now: Da
     <meta name="description" content="Brocantes, vide-greniers, films en VO, concerts et spectacles à moins de ${settings.radiusKm} km de ${escape(settings.home.name)}.">
     ${feeds.map(feed => `<link rel="alternate" type="application/rss+xml" title="${escape(`${title} : ${feed.label}`)}" href="${feed.path}">`).join('\n    ')}
     <link rel="preload" href="ds/fonts/bricolage-grotesque-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-    <!-- The design system, @dume/ds: all of the page's style, but what is its own, below -->
+    <!-- The design system, @dume/ds: all of the page's style, but what is its own -->
     <link rel="stylesheet" href="ds/styles.css">
-    <style>
-      /* The filter, a card: the design system styles no fieldset */
-      .filters {
-        margin: 0;
-        min-inline-size: 0;
-      }
-      .filters legend {
-        float: inline-start;
-        font-weight: 700;
-        margin-block-end: var(--ds-b-size-8);
-        padding: 0;
-      }
-      .filters .ds-l-cluster {
-        clear: both;
-      }
-      /* Each day's heading stays at the top while its events scroll by */
-      h2 {
-        position: sticky;
-        inset-block-start: 0;
-        background-color: var(--ds-b-color-background);
-        padding-block: var(--ds-b-size-8);
-      }
-      .ds-c-card p {
-        margin-block: 0;
-      }
-      .ds-c-card p + p {
-        margin-block-start: var(--ds-b-size-4);
-      }
-      ${filterStyles(categories)}
-    </style>
+    <!-- What is the page's own, over it: its filter, its days and its events (render/page.css) -->
+    <link rel="stylesheet" href="page.css">
   </head>
   <body class="ds-l-page ds-l-page--full-height">
     <main id="main" class="ds-l-page__main">

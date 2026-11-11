@@ -1,8 +1,9 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { dayTitle, when } from './format.ts';
 import { renderPage } from './page.ts';
 import { renderRss } from './rss.ts';
-import type { KnownEvent } from '../types.ts';
+import { CATEGORIES, type KnownEvent } from '../types.ts';
 
 const NOW = new Date('2026-11-11T09:00:00Z');
 const SETTINGS = { home: { name: 'Landévant' }, radiusKm: 25, horizonDays: 45, newDays: 2, sources: [{ label: 'Brocabrac', homepage: 'https://brocabrac.fr/56/' }] };
@@ -61,14 +62,14 @@ describe('renderPage', () => {
 
   it('puts the details on a line of their own, under the place', () => {
     const html = renderPage([event('film', { category: 'cinema', place: 'Ti Hanok, Auray', details: 'jeu. 12 : 20:30' })], SETTINGS, NOW);
-    expect(html).toContain('<p class="ds-u-text-muted">Ciné VO · Ti Hanok, Auray, 12\u00a0km</p>');
-    expect(html).toContain('<p class="ds-u-text-muted">jeu. 12 : 20:30</p>');
+    expect(html).toContain('<p class="ds-u-text-muted event__meta">Ciné VO · Ti Hanok, Auray, 12\u00a0km</p>');
+    expect(html).toContain('<p class="ds-u-text-muted event__meta">jeu. 12 : 20:30</p>');
   });
 
   it('is styled by the design system, next to it', () => {
     const html = renderPage([event('a')], SETTINGS, NOW);
     expect(html).toContain('<link rel="stylesheet" href="ds/styles.css">');
-    expect(html).toContain('<li class="ds-c-card" data-category="brocante">');
+    expect(html).toContain('<li class="ds-c-card event" data-category="brocante">');
   });
 
   it('says when there is nothing', () => {
@@ -84,5 +85,14 @@ describe('renderRss', () => {
     expect(xml.indexOf('<guid isPermaLink="false">fresh</guid>')).toBeLessThan(xml.indexOf('<guid isPermaLink="false">old</guid>'));
     expect(xml).toContain('<pubDate>Tue, 10 Nov 2026 09:00:00 GMT</pubDate>');
     expect(xml).toContain('<title>dim. 15 nov. · fresh · Hennebont, 12 km</title>');
+  });
+});
+
+describe('page.css', () => {
+  it('has a filter rule for every category', () => {
+    const css = readFileSync(new URL('page.css', import.meta.url), 'utf8');
+    for (const category of Object.keys(CATEGORIES)) {
+      expect(css).toContain(`:root:has(#filter-${category}:checked)`);
+    }
   });
 });
