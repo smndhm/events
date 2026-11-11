@@ -1,7 +1,7 @@
 // What the page groups its events by. A source gives each event one of them.
 export const CATEGORIES = {
   brocante: 'Brocantes et vide-greniers',
-  cinema: 'Films en VO',
+  cinema: 'Films en VO ou en français',
   sortie: 'Concerts, spectacles et sorties',
 } as const;
 
@@ -25,9 +25,13 @@ export type Event = {
   lon?: number;
   url: string;
   image?: string;
-  // Shown in place of the hours, such as a film's showtimes on each day
-  details?: string;
+  // Lines shown in place of the hours, such as a film's showtimes in each cinema
+  details?: Segment[][];
 };
+
+// A piece of a line of details: text, or a link. `hint`, read by screen readers only, says where the link goes when its
+// text alone does not ("mer. 11": the showtimes of that day, in that cinema)
+export type Segment = { text: string; url?: string; hint?: string };
 
 // An event as the page and the feeds show it: with how far it is, and the day it was first seen, which the state
 // branch remembers

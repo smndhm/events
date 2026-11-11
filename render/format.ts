@@ -1,5 +1,14 @@
 import { addDays, isDayOnly, lastDay, parisDay, TIME_ZONE } from '../utils/dates.ts';
-import type { KnownEvent } from '../types.ts';
+import type { KnownEvent, Segment } from '../types.ts';
+
+// A line of details as text, its links as their text
+export const segmentsText = (segments: Segment[]): string => segments.map(({ text }) => text).join('');
+
+// A line of details as HTML, its links as links, their hint for screen readers only
+export const segmentsHtml = (segments: Segment[]): string =>
+  segments
+    .map(({ text, url, hint }) => (url ? `<a href="${escape(url)}">${escape(text)}${hint ? `<span class="ds-u-visually-hidden">, ${escape(hint)}</span>` : ''}</a>` : escape(text)))
+    .join('');
 
 export const escape = (text: string): string => text.replace(/[&<>"']/g, char => `&#${char.charCodeAt(0)};`);
 
@@ -22,7 +31,7 @@ export const shortDay = (day: string): string => shortDayFormat.format(atNoon(da
 // The details a source gave, such as a film's showtimes; else "10:00 – 18:00", "jusqu'au dim. 16 nov.", or nothing for a
 // bare day
 export const when = (event: KnownEvent): string => {
-  if (event.details) return event.details;
+  if (event.details) return event.details.map(segmentsText).join(' ; ');
   const last = lastDay(event);
   if (last !== parisDay(event.start)) return `jusqu'au ${shortDay(last)}`;
   if (isDayOnly(event.start)) return '';

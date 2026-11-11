@@ -21,8 +21,10 @@ export const siteUrl = 'https://smndhm.github.io/events/';
 // Every source read on each run. Adding a site means adding one file in sources/ and one line here.
 export const sources: Source[] = [
   brocabrac({ department: '56' }),
-  // The films in original version of the coming week. Coordinates from api-adresse.data.gouv.fr.
+  // The films of the coming week in their own language: in original version, or French. Coordinates from
+  // api-adresse.data.gouv.fr.
   allocine({
+    home,
     days: 7,
     theaters: [
       { id: 'P9556', name: 'CGR Lanester', address: 'Rue Gustave Zédé, zone du Manébos', place: 'Lanester', lat: 47.775337, lon: -3.355623 },

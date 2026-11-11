@@ -8,6 +8,7 @@ import { pathToFileURL } from 'node:url';
 import { audit } from '@dume/dev-config/a11y';
 import { chromium } from 'playwright';
 import { writeSite } from './render/site.ts';
+import { describeShowtimes } from './sources/allocine.ts';
 import { joinDays, parsePage } from './sources/brocabrac.ts';
 import type { KnownEvent } from './types.ts';
 
@@ -22,10 +23,14 @@ const events: KnownEvent[] = [
     category: 'cinema',
     title: 'Un film en VOST',
     start: '2026-11-14T20:30:00+01:00',
-    place: 'Auray',
+    place: 'Ti Hanok (Auray)',
     url: 'https://example.org/film',
     distance: 9,
     firstSeen: NOW.toISOString(),
+    // With its links to the cinema and to each day's showtimes
+    details: [
+      describeShowtimes({ id: 'P0591', name: 'Ti Hanok', address: '', place: 'Auray', lat: 47.67, lon: -3.01 }, ['2026-11-14T20:30:00+01:00', '2026-11-15T16:00:00+01:00']),
+    ],
   },
 ];
 // Written as the build writes it, with the design system's stylesheet next to the page
@@ -42,7 +47,7 @@ try {
     await page.goto(url);
     failures.push(...(await audit(page)).map(violation => `${colorScheme}: ${violation}`));
 
-    await page.getByLabel('Films en VO').check();
+    await page.getByLabel('Films en VO ou en français').check();
     const visible = await page.locator('.event:visible').count();
     if (visible !== 1) failures.push(`${colorScheme}: the film filter shows ${visible} events, not 1`);
     await page.close();
