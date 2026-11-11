@@ -83,10 +83,12 @@ try {
       day.querySelector('.day__total')?.textContent,
       String(day.querySelectorAll('.event:not([hidden])').length),
     ]),
+    open: [...document.querySelectorAll('.day:not([hidden])')].map(day => [day.getAttribute('data-day'), day.querySelector('.day__category')?.hasAttribute('open')]),
     headings: Object.fromEntries([...document.querySelectorAll('.day:not([hidden])')].map(day => [day.getAttribute('data-day'), day.querySelector('.day__title')?.textContent])),
   }));
   if (read.hidden === 0) failures.push('read later, no event is hidden');
   if (read.counts.some(([shown, left]) => shown !== left || left === '0')) failures.push('read later, a category counts other than its events left');
+  if (read.open.some(([, open]) => !open)) failures.push(`read later, a category is folded: ${JSON.stringify(read.open)}`);
   if (read.totals.some(([shown, left]) => shown !== left || left === '0')) failures.push('read later, a day counts other than its events left');
   if (read.ends.some(ends => new Date(ends) <= now)) failures.push('read later, an event over is still shown');
   if (read.starts.some(starts => new Date(starts) <= now)) failures.push('read later, a showtime started is still shown');
