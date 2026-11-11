@@ -167,12 +167,12 @@ importers:
   .:
     dependencies:
       '@dume/ds':
-        specifier: 0.8.0
-        version: 0.8.0
+        specifier: 0.9.0
+        version: 0.9.0
     devDependencies:
       '@dume/dev-config':
-        specifier: 1.4.0
-        version: 1.4.0(oxlint@1.92.0)(playwright@1.65.0)(postcss@8.5.32)(prettier@3.9.10)(stylelint@17.16.0(supports-color@10.2.2)(typescript@7.0.2))(supports-color@10.2.2)
+        specifier: 1.5.0
+        version: 1.5.0(oxlint@1.92.0)(playwright@1.65.0)(postcss@8.5.32)(prettier@3.9.10)(stylelint@17.16.0(supports-color@10.2.2)(typescript@7.0.2))(supports-color@10.2.2)
       '@types/node':
         specifier: 24.19.2
         version: 24.19.2
@@ -255,8 +255,8 @@ packages:
     peerDependencies:
       postcss-selector-parser: ^7.1.1
 
-  '@dume/dev-config@1.4.0':
-    resolution: {integrity: sha512-unMdAnZFeJD/nvzvC4HkQ6Azx1louvpfg1EKkLzOOcD1XrEf/ETjH2cQaWyYHIz8FPp+FjkUdipBXF5QoGOL3g==}
+  '@dume/dev-config@1.5.0':
+    resolution: {integrity: sha512-fY1yGQf0TFcuYTmA4hcY4nXUrZM+VUI9hjzMreqRw82k8R4XB0V5BI8PAblJLpandpY0GZ5cVhvdrCr/+R8MVA==}
     hasBin: true
     peerDependencies:
       eslint: '>=10'
@@ -276,8 +276,8 @@ packages:
       stylelint:
         optional: true
 
-  '@dume/ds@0.8.0':
-    resolution: {integrity: sha512-D0fkL2ZtQ1IIZ0sSeiwnrdj7kA4wphTnDdGNwUaRMgkZiEQgBwAs6FkFxhcFLfrLDXOfjCJXg2hl7ZRadWj+Og==}
+  '@dume/ds@0.9.0':
+    resolution: {integrity: sha512-ktQXhgarLUxJLQ3/MHKVGcdQVATUG8Kk2Li9j/LE5UdWzIthD3UfFFb5KzA1vkfdqysfjxLqUP/KdSjYlO8CYg==}
 
   '@eslint/core@1.2.1':
     resolution: {integrity: sha512-MwcE1P+AZ4C6DWlpin/OmOA54mmIZ/+xZuJiQd4SyB29oAJjN30UW9wkKNptW2ctp4cEsvhlLY/CsQ1uoHDloQ==}
@@ -1838,8 +1838,8 @@ packages:
     peerDependencies:
       stylelint: ^14.0.0 || ^15.0.0 || ^16.0.1
 
-  stylelint-prettier@5.0.3:
-    resolution: {integrity: sha512-B6V0oa35ekRrKZlf+6+jA+i50C4GXJ7X1PPmoCqSUoXN6BrNF6NhqqhanvkLjqw2qgvrS0wjdpeC+Tn06KN3jw==}
+  stylelint-prettier@5.1.0:
+    resolution: {integrity: sha512-YYu3C6AlovZkSUsgyANyxmrzKF6BlK85voexN+iLlh1i1Lgl0IeGhwqFiPHPX8cMSkX0AC2/oHi06j/5iXSWgA==}
     engines: {node: '>=18.12.0'}
     peerDependencies:
       prettier: '>=3.0.0'
@@ -2118,7 +2118,7 @@ snapshots:
     dependencies:
       postcss-selector-parser: 7.2.0
 
-  '@dume/dev-config@1.4.0(oxlint@1.92.0)(playwright@1.65.0)(postcss@8.5.32)(prettier@3.9.10)(stylelint@17.16.0(supports-color@10.2.2)(typescript@7.0.2))(supports-color@10.2.2)':
+  '@dume/dev-config@1.5.0(oxlint@1.92.0)(playwright@1.65.0)(postcss@8.5.32)(prettier@3.9.10)(stylelint@17.16.0(supports-color@10.2.2)(typescript@7.0.2))(supports-color@10.2.2)':
     dependencies:
       '@eslint/json': 2.1.1
       '@eslint/markdown': 8.0.3(supports-color@10.2.2)
@@ -2128,7 +2128,7 @@ snapshots:
       stylelint-config-idiomatic-order: 10.0.0(stylelint@17.16.0(supports-color@10.2.2)(typescript@7.0.2))
       stylelint-config-standard-scss: 17.0.0(postcss@8.5.32)(stylelint@17.16.0(supports-color@10.2.2)(typescript@7.0.2))
       stylelint-declaration-strict-value: 1.12.1(stylelint@17.16.0(supports-color@10.2.2)(typescript@7.0.2))
-      stylelint-prettier: 5.0.3(prettier@3.9.10)(stylelint@17.16.0(supports-color@10.2.2)(typescript@7.0.2))
+      stylelint-prettier: 5.1.0(prettier@3.9.10)(stylelint@17.16.0(supports-color@10.2.2)(typescript@7.0.2))
       stylelint-use-logical: 2.1.3(stylelint@17.16.0(supports-color@10.2.2)(typescript@7.0.2))
     optionalDependencies:
       oxlint: 1.92.0
@@ -2139,7 +2139,7 @@ snapshots:
       - postcss
       - supports-color
 
-  '@dume/ds@0.8.0':
+  '@dume/ds@0.9.0':
     dependencies:
       '@fontsource-variable/bricolage-grotesque': 5.3.0
       '@fontsource-variable/instrument-sans': 5.3.0
@@ -3805,7 +3805,7 @@ snapshots:
       postcss-sorting: 8.0.2(postcss@8.5.32)
       stylelint: 17.16.0(supports-color@10.2.2)(typescript@7.0.2)
 
-  stylelint-prettier@5.0.3(prettier@3.9.10)(stylelint@17.16.0(supports-color@10.2.2)(typescript@7.0.2)):
+  stylelint-prettier@5.1.0(prettier@3.9.10)(stylelint@17.16.0(supports-color@10.2.2)(typescript@7.0.2)):
     dependencies:
       prettier: 3.9.10
       prettier-linter-helpers: 1.0.1

@@ -18,7 +18,7 @@
   "license": "ISC",
   "prettier": "@dume/dev-config/lint/prettier",
   "devDependencies": {
-    "@dume/dev-config": "1.4.0",
+    "@dume/dev-config": "1.5.0",
     "@types/node": "24.19.2",
     "oxlint": "1.92.0",
     "playwright": "1.65.0",
@@ -28,6 +28,6 @@
     "vitest": "5.1.0"
   },
   "dependencies": {
-    "@dume/ds": "0.8.0"
+    "@dume/ds": "0.9.0"
   }
 }

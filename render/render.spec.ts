@@ -62,9 +62,9 @@ describe('renderPage', () => {
     expect(html.indexOf('Dimanche 15 novembre')).toBeLessThan(html.indexOf('>sunday<'));
   });
 
-  it('marks the events first seen recently as new', () => {
+  it('marks the events first seen recently as new, with a tag', () => {
     const html = renderPage([event('old'), event('fresh', { firstSeen: '2026-11-10T09:00:00.000Z' })], SETTINGS, NOW);
-    expect(html.match(/>Nouveau</g)).toHaveLength(1);
+    expect(html.match(/<span class="ds-c-tag">Nouveau<\/span>/g)).toHaveLength(1);
   });
 
   it('escapes what the sites write', () => {
@@ -74,15 +74,15 @@ describe('renderPage', () => {
   it('offers a filter once there are two categories', () => {
     expect(renderPage([event('a')], SETTINGS, NOW)).not.toContain('<fieldset');
     const html = renderPage([event('a'), event('b', { category: 'cinema' })], SETTINGS, NOW);
-    expect(html).toContain('id="filter-cinema"');
+    expect(html).toContain('<input class="ds-c-radio__control" type="radio" name="filter" id="filter-cinema"><label class="ds-c-radio__label" for="filter-cinema">');
     expect(html).toContain('href="rss/cinema.xml"');
   });
 
   it('folds each cinema of a film, then each of its days, with their links', () => {
     const html = renderPage([event('film', { category: 'cinema', place: 'Ti Hanok (Auray), CGR Lanester', showings: SHOWINGS })], SETTINGS, NOW);
     expect(html).toContain('<p class="ds-u-text-muted event__meta">Ciné · 2 cinémas</p>');
-    expect(html).toContain('<summary class="showings__summary"><strong>Ti Hanok (Auray)</strong> <span class="ds-u-text-muted">14&nbsp;km · 2 jours</span></summary>');
-    expect(html).toContain('<summary class="showings__summary">mer.\u00a011 <span class="ds-u-text-muted">· 2 séances</span></summary>');
+    expect(html).toContain('<summary><strong>Ti Hanok (Auray)</strong> <span class="ds-u-text-muted">14&nbsp;km · 2 jours</span></summary>');
+    expect(html).toContain('<summary>mer.\u00a011 <span class="ds-u-text-muted">· 2 séances</span></summary>');
     expect(html).toMatch(
       /<p class="showings__times"><a href="ics\/[0-9a-f]{16}\.ics">15:45<span class="ds-u-visually-hidden">, ajouter la séance à l&#39;agenda<\/span><\/a>, <a href="ics\/[0-9a-f]{16}\.ics">18:00/,
     );
@@ -94,7 +94,7 @@ describe('renderPage', () => {
 
   it('adds an event to the calendar with its file', () => {
     expect(renderPage([event('fair')], SETTINGS, NOW)).toMatch(
-      /<p class="event__meta event__calendar"><a href="ics\/[0-9a-f]{16}\.ics">Ajouter à l&#39;agenda<span class="ds-u-visually-hidden"> : fair<\/span><\/a><\/p>/,
+      /<p class="event__meta"><small><a href="ics\/[0-9a-f]{16}\.ics">Ajouter à l&#39;agenda<span class="ds-u-visually-hidden"> : fair<\/span><\/a><\/small><\/p>/,
     );
   });
 

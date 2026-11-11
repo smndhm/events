@@ -3,24 +3,6 @@
  * system's namespace (ds-), which is its own. Outside the design system's layers, so it wins without a specificity fight.
  */
 
-/* The category filter, a card: the design system styles no fieldset. Its legend floats, so it lines up with the options
-   under it rather than sitting on the fieldset's border */
-.filter {
-  margin: 0;
-  min-inline-size: 0;
-}
-
-.filter__legend {
-  padding: 0;
-  float: inline-start;
-  font-weight: 700;
-  margin-block-end: var(--ds-b-size-8);
-}
-
-.filter__options {
-  clear: both;
-}
-
 /* The radio button checked hides the events of the other categories, and the days left without any: without a script.
    One rule per category of types.ts (render/page.spec.ts checks that none is missing). */
 :root:has(#filter-brocante:checked) :is(.event:not([data-category='brocante']), .day:not(:has(.event[data-category='brocante']))),
@@ -46,11 +28,6 @@
   margin-block: var(--ds-b-size-4) 0;
 }
 
-/* Marks an event first seen in the last days: small, beside its title, which stays what catches the eye */
-.event__new {
-  font-size: var(--ds-b-size-12);
-}
-
 /* A film's cinemas, the nearest first, each folded, then each of its days: one under the other, a little apart */
 .showings {
   display: flex;
@@ -60,10 +37,6 @@
   gap: var(--ds-b-size-8);
   list-style: none;
   margin-block-start: var(--ds-b-size-12);
-}
-
-.showings__summary {
-  cursor: pointer;
 }
 
 /* A cinema's days, under its name, set in from it */
@@ -90,9 +63,4 @@
 .showings__link--theater {
   margin-block-start: var(--ds-b-size-8);
   padding-inline-start: 0;
-}
-
-/* Its link to the calendar: small, under its details, which stay what one reads first */
-.event__calendar {
-  font-size: var(--ds-b-size-12);
 }

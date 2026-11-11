@@ -32,13 +32,13 @@ const renderShowings = (event: KnownEvent): string => `
                 .map(
                   showing => `<li>
                 <details class="showings__theater">
-                  <summary class="showings__summary"><strong>${escape(showing.place)}</strong> <span class="ds-u-text-muted">${[showing.distance === undefined ? '' : `${showing.distance}&nbsp;km`, plural(showing.days.length, 'jour')].filter(Boolean).join(' · ')}</span></summary>
+                  <summary><strong>${escape(showing.place)}</strong> <span class="ds-u-text-muted">${[showing.distance === undefined ? '' : `${showing.distance}&nbsp;km`, plural(showing.days.length, 'jour')].filter(Boolean).join(' · ')}</span></summary>
                   <ul class="showings__days" role="list">
                     ${showing.days
                       .map(
                         ({ day, url, times }) => `<li>
                       <details class="showings__day">
-                        <summary class="showings__summary">${showingDay(day)} <span class="ds-u-text-muted">· ${plural(times.length, 'séance')}</span></summary>
+                        <summary>${showingDay(day)} <span class="ds-u-text-muted">· ${plural(times.length, 'séance')}</span></summary>
                         <p class="showings__times">${times.map(at => calendarLink(screeningKey(event, showing, at), time(at), ", ajouter la séance à l'agenda")).join(', ')}</p>
                         <p class="showings__link"><a href="${escape(url)}">Séances du jour sur Allociné<span class="ds-u-visually-hidden"> : ${escape(showing.place)}, ${showingDay(day)}</span></a></p>
                       </details>
@@ -59,11 +59,11 @@ const renderEvent = (event: KnownEvent, now: Date, newDays: number): string => {
     ? [SHORT_LABELS[event.category], plural(event.showings.length, 'cinéma')].join(' · ')
     : [SHORT_LABELS[event.category], when(event), where(event)].filter(Boolean).join(' · ');
   return `<li class="ds-c-card event" data-category="${event.category}">
-            <p class="event__title"><a href="${escape(event.url)}">${escape(event.title)}</a>${isNew(event, now, newDays) ? ' <strong class="ds-u-text-primary event__new">Nouveau</strong>' : ''}</p>
+            <p class="event__title"><a href="${escape(event.url)}">${escape(event.title)}</a>${isNew(event, now, newDays) ? ' <span class="ds-c-tag">Nouveau</span>' : ''}</p>
             <p class="ds-u-text-muted event__meta">${escape(meta)}</p>${
               event.showings
                 ? renderShowings(event)
-                : `\n            <p class="event__meta event__calendar">${calendarLink(event.id, "Ajouter à l'agenda", ` : ${event.title}`)}</p>`
+                : `\n            <p class="event__meta"><small>${calendarLink(event.id, "Ajouter à l'agenda", ` : ${event.title}`)}</small></p>`
             }
           </li>`;
 };
@@ -79,11 +79,11 @@ const byTimeThenDistance = (day: string): ((a: KnownEvent, b: KnownEvent) => num
 // The category filter, once there are two categories to choose from, is a set of radio buttons, and CSS hides what they
 // leave out (page.css): it works without a script
 const filterOption = (id: string, label: string, count: number, checked = false): string =>
-  `<label><input type="radio" name="filter" id="filter-${id}"${checked ? ' checked' : ''}> ${label} <span class="ds-u-text-muted">(${count})</span></label>`;
+  `<div class="ds-c-radio"><input class="ds-c-radio__control" type="radio" name="filter" id="filter-${id}"${checked ? ' checked' : ''}><label class="ds-c-radio__label" for="filter-${id}">${label} <span class="ds-u-text-muted">(${count})</span></label></div>`;
 
-const renderFilters = (events: KnownEvent[], categories: Category[]): string => `<fieldset class="ds-c-card filter">
-        <legend class="filter__legend">Afficher</legend>
-        <div class="ds-l-cluster filter__options">
+const renderFilters = (events: KnownEvent[], categories: Category[]): string => `<fieldset class="ds-c-card">
+        <legend>Afficher</legend>
+        <div class="ds-l-cluster">
           ${[
             filterOption('all', 'Tout', events.length, true),
             ...categories.map(category => filterOption(category, CATEGORIES[category], events.filter(event => event.category === category).length)),
