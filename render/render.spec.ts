@@ -78,18 +78,29 @@ describe('renderPage', () => {
     expect(html).toContain('href="rss/cinema.xml"');
   });
 
-  it('folds each cinema of a film, then each of its days, with their links', () => {
-    const html = renderPage([event('film', { category: 'cinema', place: 'Ti Hanok (Auray), CGR Lanester', showings: SHOWINGS })], SETTINGS, NOW);
-    expect(html).toContain('<p class="ds-u-text-muted event__meta">Ciné · 2 cinémas</p>');
-    expect(html).toContain('<summary><strong>Ti Hanok (Auray)</strong> <span class="ds-u-text-muted">14&nbsp;km · 2 jours</span></summary>');
-    expect(html).toContain('<summary>mer.\u00a011 <span class="ds-u-text-muted">· 2 séances</span></summary>');
+  it('lists a film under each day it is shown, with the showtimes of that day only', () => {
+    const html = renderPage(
+      [event('film', { category: 'cinema', start: '2026-11-11T15:45:00+01:00', place: 'Ti Hanok (Auray), CGR Lanester', showings: SHOWINGS })],
+      SETTINGS,
+      NOW,
+    );
+    const [today = '', tomorrow = ''] = html.split('<section class="day"').slice(1);
+    expect(today).toContain("Aujourd'hui");
+    expect(today).toContain('<p class="ds-u-text-muted event__meta">Ciné · 1 cinéma</p>');
+    expect(today).toMatch(/>15:45<.*>18:00</);
+    expect(today).not.toContain('17:25');
+    expect(today).not.toContain('CGR Lanester');
+    expect(tomorrow).toContain('Demain');
+    expect(tomorrow).toContain('<p class="ds-u-text-muted event__meta">Ciné · 2 cinémas</p>');
+    expect(tomorrow).toMatch(/Ti Hanok \(Auray\).*>17:25<[\s\S]*CGR Lanester.*>20:30</);
+    expect(tomorrow).not.toContain('15:45');
+  });
+
+  it('gives a cinema a line, with its showtimes of the day on Allociné, its distance and its times', () => {
+    const html = renderPage([event('film', { category: 'cinema', showings: SHOWINGS })], SETTINGS, NOW);
     expect(html).toMatch(
-      /<p class="showings__times"><a href="ics\/[0-9a-f]{16}\.ics">15:45<span class="ds-u-visually-hidden">, ajouter la séance à l&#39;agenda<\/span><\/a>, <a href="ics\/[0-9a-f]{16}\.ics">18:00/,
+      /<li><a href="https:\/\/example\.org\/ti-hanok#2026-11-11"><strong>Ti Hanok \(Auray\)<\/strong><span class="ds-u-visually-hidden">, séances du mer\.\u00a011 sur Allociné<\/span><\/a> <span class="ds-u-text-muted">14&nbsp;km<\/span> · <a href="ics\/[0-9a-f]{16}\.ics">15:45<span class="ds-u-visually-hidden">, ajouter la séance à l&#39;agenda<\/span><\/a>, <a href="ics\/[0-9a-f]{16}\.ics">18:00/,
     );
-    expect(html).toContain(
-      '<a href="https://example.org/ti-hanok#2026-11-11">Séances du jour sur Allociné<span class="ds-u-visually-hidden"> : Ti Hanok (Auray), mer.\u00a011</span></a>',
-    );
-    expect(html).toContain('<a href="https://example.org/ti-hanok">Toutes ses séances sur Allociné<span class="ds-u-visually-hidden"> : Ti Hanok (Auray)</span></a>');
   });
 
   it('adds an event to the calendar with its file', () => {

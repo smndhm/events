@@ -24,34 +24,34 @@ const plural = (count: number, word: string): string => `${count} ${word}${count
 // A link to the calendar file of an event or a showtime, its hidden text saying what it does, "20:30" alone not saying it
 const calendarLink = (key: string, text: string, hint: string): string => `<a href="${icsPath(key)}">${escape(text)}<span class="ds-u-visually-hidden">${escape(hint)}</span></a>`;
 
-// A film's cinemas, the nearest first, each folded, then each of its days folded: a day shows its times, each a link
-// adding that showtime to the calendar, and the cinema's showtimes that day on Allociné
+// A film's cinemas on one day, the nearest first, a line each: its name, a link to its showtimes that day on Allociné,
+// its distance, and its times, each a link adding that showtime to the calendar
 const renderShowings = (event: KnownEvent): string => `
             <ul class="showings" role="list">
               ${(event.showings ?? [])
-                .map(
-                  showing => `<li>
-                <details class="showings__theater">
-                  <summary><strong>${escape(showing.place)}</strong> <span class="ds-u-text-muted">${[showing.distance === undefined ? '' : `${showing.distance}&nbsp;km`, plural(showing.days.length, 'jour')].filter(Boolean).join(' · ')}</span></summary>
-                  <ul class="showings__days" role="list">
-                    ${showing.days
-                      .map(
-                        ({ day, url, times }) => `<li>
-                      <details class="showings__day">
-                        <summary>${showingDay(day)} <span class="ds-u-text-muted">· ${plural(times.length, 'séance')}</span></summary>
-                        <p class="showings__times">${times.map(at => calendarLink(screeningKey(event, showing, at), time(at), ", ajouter la séance à l'agenda")).join(', ')}</p>
-                        <p class="showings__link"><a href="${escape(url)}">Séances du jour sur Allociné<span class="ds-u-visually-hidden"> : ${escape(showing.place)}, ${showingDay(day)}</span></a></p>
-                      </details>
-                    </li>`,
-                      )
-                      .join('\n                    ')}
-                  </ul>
-                  <p class="showings__link showings__link--theater"><a href="${escape(showing.url)}">Toutes ses séances sur Allociné<span class="ds-u-visually-hidden"> : ${escape(showing.place)}</span></a></p>
-                </details>
-              </li>`,
+                .flatMap(showing =>
+                  showing.days.map(
+                    ({ day, url, times }) =>
+                      `<li><a href="${escape(url)}"><strong>${escape(showing.place)}</strong><span class="ds-u-visually-hidden">, séances du ${showingDay(day)} sur Allociné</span></a>${showing.distance === undefined ? '' : ` <span class="ds-u-text-muted">${showing.distance}&nbsp;km</span>`} · ${times
+                        .map(at => calendarLink(screeningKey(event, showing, at), time(at), ", ajouter la séance à l'agenda"))
+                        .join(', ')}</li>`,
+                  ),
                 )
                 .join('\n              ')}
             </ul>`;
+
+// The days an event is listed under, and what it is on each. A film is under each day it is shown, with that day's
+// showtimes only, from its first to its last of the day; any other event under one day, its first or today.
+const listings = (event: KnownEvent, today: string): [string, KnownEvent][] => {
+  const { showings } = event;
+  if (!showings) return [[listedOn(event, today), event]];
+  const days = [...new Set(showings.flatMap(showing => showing.days.map(({ day }) => day)))].filter(day => day >= today).toSorted();
+  return days.map(day => {
+    const ofDay = showings.map(showing => ({ ...showing, days: showing.days.filter(shown => shown.day === day) })).filter(showing => showing.days.length > 0);
+    const times = ofDay.flatMap(showing => showing.days.flatMap(shown => shown.times)).toSorted();
+    return [day, { ...event, start: times[0] ?? event.start, end: times.at(-1), showings: ofDay }];
+  });
+};
 
 const renderEvent = (event: KnownEvent, now: Date, newDays: number): string => {
   // A film's showtimes are in lists under it, its cinemas each with its distance: its line says how many cinemas show it
@@ -97,7 +97,14 @@ export const renderPage = (events: KnownEvent[], settings: PageSettings, now: Da
   const today = parisDay(now);
   const title = `Autour de ${settings.home.name}`;
   const categories = (Object.keys(CATEGORIES) as Category[]).filter(category => events.some(event => event.category === category));
-  const days = [...Map.groupBy(events, event => listedOn(event, today))].toSorted(([a], [b]) => a.localeCompare(b));
+  const days = [
+    ...Map.groupBy(
+      events.flatMap(event => listings(event, today)),
+      ([day]) => day,
+    ),
+  ]
+    .map(([day, listed]) => [day, listed.map(([, event]) => event)] as const)
+    .toSorted(([a], [b]) => a.localeCompare(b));
   const feeds = [{ label: 'Tout', path: feedPath() }, ...categories.map(category => ({ label: CATEGORIES[category], path: feedPath(category) }))];
 
   const sections = days.map(
