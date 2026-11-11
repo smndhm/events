@@ -28,6 +28,6 @@
     "vitest": "5.1.0"
   },
   "dependencies": {
-    "@dume/ds": "0.9.0"
+    "@dume/ds": "0.10.0"
   }
 }

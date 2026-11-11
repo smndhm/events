@@ -13,8 +13,6 @@ export type PageSettings = {
   sources: Pick<Source, 'label' | 'homepage'>[];
 };
 
-const SHORT_LABELS: Record<Category, string> = { brocante: 'Brocante', cinema: 'Ciné', sortie: 'Sortie' };
-
 const updatedFormat = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeStyle: 'short', timeZone: 'Europe/Paris' });
 
 const isNew = (event: KnownEvent, now: Date, newDays: number): boolean => now.getTime() - new Date(event.firstSeen).getTime() < newDays * 86_400_000;
@@ -63,11 +61,11 @@ export const endsAt = (event: KnownEvent): string => {
 };
 
 const renderEvent = (event: KnownEvent, now: Date, newDays: number): string => {
-  // A film's showtimes are in a list under it, its cinemas each with its distance, which page.js shortens as they start
-  const meta = event.showings ? SHORT_LABELS[event.category] : [SHORT_LABELS[event.category], when(event), where(event)].filter(Boolean).join(' · ');
+  // Its category is the folded list it is in: its line says when and where; a film's showtimes say both
+  const meta = event.showings ? '' : [when(event), where(event)].filter(Boolean).join(' · ');
   return `<li class="ds-c-card event" data-category="${event.category}" data-ends="${endsAt(event)}">
             <p class="event__title"><a href="${escape(event.url)}">${escape(event.title)}</a>${isNew(event, now, newDays) ? ' <span class="ds-c-tag">Nouveau</span>' : ''}</p>
-            <p class="ds-u-text-muted event__meta">${escape(meta)}</p>${
+            ${meta ? `<p class="ds-u-text-muted event__meta">${escape(meta)}</p>` : ''}${
               event.showings
                 ? renderShowings(event)
                 : `\n            <p class="event__meta"><small>${calendarLink(event.id, "Ajouter à l'agenda", ` : ${event.title}`)}</small></p>`
@@ -83,20 +81,17 @@ const byTimeThenDistance = (day: string): ((a: KnownEvent, b: KnownEvent) => num
   return (a, b) => rank(a) - rank(b) || clock(a).localeCompare(clock(b)) || (a.distance ?? Infinity) - (b.distance ?? Infinity);
 };
 
-// The category filter, once there are two categories to choose from, is a set of radio buttons, and CSS hides what they
-// leave out (page.css): it works without a script
-const filterOption = (id: string, label: string, count: number, checked = false): string =>
-  `<div class="ds-c-radio"><input class="ds-c-radio__control" type="radio" name="filter" id="filter-${id}"${checked ? ' checked' : ''}><label class="ds-c-radio__label" for="filter-${id}">${label} <span class="ds-u-text-muted">(${count})</span></label></div>`;
-
-const renderFilters = (events: KnownEvent[], categories: Category[]): string => `<fieldset class="ds-c-card">
-        <legend>Afficher</legend>
-        <div class="ds-l-cluster">
-          ${[
-            filterOption('all', 'Tout', events.length, true),
-            ...categories.map(category => filterOption(category, CATEGORIES[category], events.filter(event => event.category === category).length)),
-          ].join('\n          ')}
-        </div>
-      </fieldset>`;
+// A day's events of one category, folded: its summary names the category and counts its events, which page.js counts
+// again as they pass
+const renderCategory = (category: Category, events: KnownEvent[], day: string, now: Date, newDays: number): string => `<details class="day__category" data-category="${category}">
+          <summary><strong>${CATEGORIES[category]}</strong> <small class="ds-u-text-muted">(<span class="day__count">${events.length}</span>)</small></summary>
+          <ul class="ds-l-stack" role="list">
+            ${events
+              .toSorted(byTimeThenDistance(day))
+              .map(event => renderEvent(event, now, newDays))
+              .join('\n            ')}
+          </ul>
+        </details>`;
 
 export const feedPath = (category?: Category): string => (category ? `rss/${category}.xml` : 'rss.xml');
 
@@ -114,15 +109,16 @@ export const renderPage = (events: KnownEvent[], settings: PageSettings, now: Da
     .toSorted(([a], [b]) => a.localeCompare(b));
   const feeds = [{ label: 'Tout', path: feedPath() }, ...categories.map(category => ({ label: CATEGORIES[category], path: feedPath(category) }))];
 
+  // Each day, its number of events, then its categories in the order of CATEGORIES, each folded
   const sections = days.map(
     ([day, dayEvents]) => `<section class="day" data-day="${day}" aria-labelledby="day-${day}">
-        <h2 class="day__heading" id="day-${day}">${dayTitle(day, today)}</h2>
-        <ul class="ds-l-stack" role="list">
-          ${dayEvents
-            .toSorted(byTimeThenDistance(day))
-            .map(event => renderEvent(event, now, settings.newDays))
-            .join('\n          ')}
-        </ul>
+        <h2 class="day__heading" id="day-${day}"><span class="day__title">${dayTitle(day, today)}</span> <small class="ds-u-text-muted">(<span class="day__total">${dayEvents.length}</span>)</small></h2>
+        <div class="day__categories">
+        ${[...Map.groupBy(dayEvents, event => event.category)]
+          .toSorted(([a], [b]) => categories.indexOf(a) - categories.indexOf(b))
+          .map(([category, categoryEvents]) => renderCategory(category, categoryEvents, day, now, settings.newDays))
+          .join('\n        ')}
+        </div>
       </section>`,
   );
 
@@ -137,7 +133,7 @@ export const renderPage = (events: KnownEvent[], settings: PageSettings, now: Da
     <link rel="preload" href="ds/fonts/bricolage-grotesque-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
     <!-- The design system, @dume/ds: all of the page's style, but what is its own -->
     <link rel="stylesheet" href="ds/styles.css">
-    <!-- What is the page's own, over it: its filter, its days and its events (render/page.css) -->
+    <!-- What is the page's own, over it: its days, their categories and its events (render/page.css) -->
     <link rel="stylesheet" href="page.css">
   </head>
   <body class="ds-l-page ds-l-page--full-height">
@@ -147,7 +143,7 @@ export const renderPage = (events: KnownEvent[], settings: PageSettings, now: Da
         <p class="ds-u-text-muted">Ce qui arrive dans les ${settings.horizonDays} prochains jours, à moins de ${settings.radiusKm}&nbsp;km. Mis à jour le ${updatedFormat.format(now)}.</p>
         <p class="ds-u-text-muted">Un événement, ou l'horaire d'une séance, s'ajoute à votre agenda d'un clic.</p>
       </hgroup>
-      ${events.length === 0 ? '<p>Rien de prévu pour le moment.</p>' : [...(categories.length > 1 ? [renderFilters(events, categories)] : []), ...sections].join('\n      ')}
+      ${events.length === 0 ? '<p>Rien de prévu pour le moment.</p>' : sections.join('\n      ')}
     </main>
     <footer class="ds-c-footer">
       <ul class="ds-l-cluster">

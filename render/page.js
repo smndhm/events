@@ -3,7 +3,8 @@
 // - An event whose end has passed (`data-ends`, written by render/page.ts) is hidden.
 // - A film's showtime that has started (`data-starts`) is taken out; a cinema left without any, its line; a film left
 //   without any cinema that day ends at its last showtime, so it is hidden as an event.
-// - A day left without any event is hidden, and the days are named again: after midnight, "Demain" is "Aujourd'hui".
+// - A day's category counts its events left, and is hidden without any; a day counts all of them, and is hidden without
+//   any. The days are named again: after midnight, "Demain" is "Aujourd'hui".
 // Then again every minute, while the page is open. A classic script, deferred: a module would not run from a file.
 
 const TIME_ZONE = 'Europe/Paris';
@@ -43,11 +44,20 @@ const hidePast = (page, now = new Date()) => {
   for (const event of page.querySelectorAll('.event[data-ends]')) {
     event.hidden = hasPassed(event.dataset.ends, now);
   }
+  for (const category of page.querySelectorAll('.day__category')) {
+    const left = category.querySelectorAll('.event:not([hidden])').length;
+    const count = category.querySelector('.day__count');
+    if (count) count.textContent = String(left);
+    category.hidden = left === 0;
+  }
   const today = parisDay(now);
   for (const day of page.querySelectorAll('.day[data-day]')) {
-    day.hidden = !day.querySelector('.event:not([hidden])');
-    const heading = day.querySelector('.day__heading');
-    if (heading) heading.textContent = dayTitle(day.dataset.day, today);
+    const left = day.querySelectorAll('.event:not([hidden])').length;
+    day.hidden = left === 0;
+    const total = day.querySelector('.day__total');
+    if (total) total.textContent = String(left);
+    const title = day.querySelector('.day__title');
+    if (title) title.textContent = dayTitle(day.dataset.day, today);
   }
 };
 

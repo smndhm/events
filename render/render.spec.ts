@@ -1,9 +1,8 @@
-import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { dayTitle, when } from './format.ts';
 import { endsAt, renderPage } from './page.ts';
 import { renderRss } from './rss.ts';
-import { CATEGORIES, type KnownEvent, type Showing } from '../types.ts';
+import type { KnownEvent, Showing } from '../types.ts';
 
 const NOW = new Date('2026-11-11T09:00:00Z');
 
@@ -71,10 +70,16 @@ describe('renderPage', () => {
     expect(renderPage([event('<script>')], SETTINGS, NOW)).not.toContain('<script>');
   });
 
-  it('offers a filter once there are two categories', () => {
-    expect(renderPage([event('a')], SETTINGS, NOW)).not.toContain('<fieldset');
-    const html = renderPage([event('a'), event('b', { category: 'cinema' })], SETTINGS, NOW);
-    expect(html).toContain('<input class="ds-c-radio__control" type="radio" name="filter" id="filter-cinema"><label class="ds-c-radio__label" for="filter-cinema">');
+  it('counts the events of a day, and folds each of its categories, counting its events, in their order', () => {
+    const html = renderPage([event('film', { category: 'cinema', start: '2026-11-15T20:30:00+01:00' }), event('a'), event('b')], SETTINGS, NOW);
+    const brocante = html.indexOf('<details class="day__category" data-category="brocante">');
+    const cinema = html.indexOf('<details class="day__category" data-category="cinema">');
+    expect(brocante).toBeGreaterThan(-1);
+    expect(cinema).toBeGreaterThan(brocante);
+    expect(html).toContain('<summary><strong>Brocantes et vide-greniers</strong> <small class="ds-u-text-muted">(<span class="day__count">2</span>)</small></summary>');
+    expect(html).toContain('<summary><strong>Films en VO ou en français</strong> <small class="ds-u-text-muted">(<span class="day__count">1</span>)</small></summary>');
+    expect(html).toContain('<span class="day__title">Dimanche 15 novembre</span> <small class="ds-u-text-muted">(<span class="day__total">3</span>)</small></h2>');
+    expect(html).not.toContain('<fieldset');
     expect(html).toContain('href="rss/cinema.xml"');
   });
 
@@ -86,7 +91,8 @@ describe('renderPage', () => {
     );
     const [today = '', tomorrow = ''] = html.split('<section class="day"').slice(1);
     expect(today).toContain("Aujourd'hui");
-    expect(today).toContain('<p class="ds-u-text-muted event__meta">Ciné</p>');
+    // No line of its own: its showtimes say when and where
+    expect(today).not.toContain('event__meta');
     expect(today).toMatch(/>15:45<.*>18:00</);
     expect(today).not.toContain('17:25');
     expect(today).not.toContain('CGR Lanester');
@@ -128,6 +134,7 @@ describe('renderPage', () => {
     const html = renderPage([event('a')], SETTINGS, NOW);
     expect(html).toContain('<link rel="stylesheet" href="ds/styles.css">');
     expect(html).toContain('<li class="ds-c-card event" data-category="brocante" data-ends="2026-11-15T18:00:00+01:00">');
+    expect(html).toContain('<p class="ds-u-text-muted event__meta">08:00 – 18:00 · Hennebont, 12\u00a0km</p>');
     expect(html).toContain('<script src="page.js" defer></script>');
   });
 
@@ -144,15 +151,6 @@ describe('renderRss', () => {
     expect(xml.indexOf('<guid isPermaLink="false">fresh</guid>')).toBeLessThan(xml.indexOf('<guid isPermaLink="false">old</guid>'));
     expect(xml).toContain('<pubDate>Tue, 10 Nov 2026 09:00:00 GMT</pubDate>');
     expect(xml).toContain('<title>dim. 15 nov. · fresh · Hennebont, 12 km</title>');
-  });
-});
-
-describe('page.css', () => {
-  it('has a filter rule for every category', () => {
-    const css = readFileSync(new URL('page.css', import.meta.url), 'utf8');
-    for (const category of Object.keys(CATEGORIES)) {
-      expect(css).toContain(`:root:has(#filter-${category}:checked)`);
-    }
   });
 });
 

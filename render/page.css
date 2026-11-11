@@ -3,13 +3,11 @@
  * system's namespace (ds-), which is its own. Outside the design system's layers, so it wins without a specificity fight.
  */
 
-/* The radio button checked hides the events of the other categories, and the days left without any, those page.js hid
-   not counting: without a script.
-   One rule per category of types.ts (render/page.spec.ts checks that none is missing). */
-:root:has(#filter-brocante:checked) :is(.event:not([data-category='brocante']), .day:not(:has(.event[data-category='brocante']:not([hidden])))),
-:root:has(#filter-cinema:checked) :is(.event:not([data-category='cinema']), .day:not(:has(.event[data-category='cinema']:not([hidden])))),
-:root:has(#filter-sortie:checked) :is(.event:not([data-category='sortie']), .day:not(:has(.event[data-category='sortie']:not([hidden])))) {
-  display: none;
+/* A day's categories, each folded, one under the other, a little apart */
+.day__categories {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-b-size-8);
 }
 
 /* A day's heading stays at the top while its events scroll by */
