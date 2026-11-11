@@ -76,9 +76,9 @@ describe('renderPage', () => {
     const cinema = html.indexOf('<details class="day__category" data-category="cinema">');
     expect(brocante).toBeGreaterThan(-1);
     expect(cinema).toBeGreaterThan(brocante);
-    expect(html).toContain('<summary><strong>Brocantes et vide-greniers</strong> <span class="ds-u-text-muted">(<span class="day__count">2</span>)</span></summary>');
-    expect(html).toContain('<summary><strong>Films en VO ou en français</strong> <span class="ds-u-text-muted">(<span class="day__count">1</span>)</span></summary>');
-    expect(html).toContain('<span class="day__title">Dimanche 15 novembre</span> <span class="ds-u-text-muted">(<span class="day__total">3</span>)</span></h2>');
+    expect(html).toContain('<summary><strong>Brocantes et vide-greniers</strong> <small class="ds-u-text-muted">(<span class="day__count">2</span>)</small></summary>');
+    expect(html).toContain('<summary><strong>Films en VO ou en français</strong> <small class="ds-u-text-muted">(<span class="day__count">1</span>)</small></summary>');
+    expect(html).toContain('<span class="day__title">Dimanche 15 novembre</span> <small class="ds-u-text-muted">(<span class="day__total">3</span>)</small></h2>');
     expect(html).not.toContain('<fieldset');
     expect(html).toContain('href="rss/cinema.xml"');
   });

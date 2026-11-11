@@ -84,7 +84,7 @@ const byTimeThenDistance = (day: string): ((a: KnownEvent, b: KnownEvent) => num
 // A day's events of one category, folded: its summary names the category and counts its events, which page.js counts
 // again as they pass
 const renderCategory = (category: Category, events: KnownEvent[], day: string, now: Date, newDays: number): string => `<details class="day__category" data-category="${category}">
-          <summary><strong>${CATEGORIES[category]}</strong> <span class="ds-u-text-muted">(<span class="day__count">${events.length}</span>)</span></summary>
+          <summary><strong>${CATEGORIES[category]}</strong> <small class="ds-u-text-muted">(<span class="day__count">${events.length}</span>)</small></summary>
           <ul class="ds-l-stack" role="list">
             ${events
               .toSorted(byTimeThenDistance(day))
@@ -112,7 +112,7 @@ export const renderPage = (events: KnownEvent[], settings: PageSettings, now: Da
   // Each day, its number of events, then its categories in the order of CATEGORIES, each folded
   const sections = days.map(
     ([day, dayEvents]) => `<section class="day" data-day="${day}" aria-labelledby="day-${day}">
-        <h2 class="day__heading" id="day-${day}"><span class="day__title">${dayTitle(day, today)}</span> <span class="ds-u-text-muted">(<span class="day__total">${dayEvents.length}</span>)</span></h2>
+        <h2 class="day__heading" id="day-${day}"><span class="day__title">${dayTitle(day, today)}</span> <small class="ds-u-text-muted">(<span class="day__total">${dayEvents.length}</span>)</small></h2>
         <div class="day__categories">
         ${[...Map.groupBy(dayEvents, event => event.category)]
           .toSorted(([a], [b]) => categories.indexOf(a) - categories.indexOf(b))
