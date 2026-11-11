@@ -5,7 +5,7 @@
 import { addDays, parisDay, TIME_ZONE, withParisOffset } from '../utils/dates.ts';
 import { fetchPage } from '../utils/http.ts';
 import { distanceKm } from '../utils/geo.ts';
-import type { Event, Source } from '../types.ts';
+import type { Event, Segment, Source } from '../types.ts';
 
 const NAME = 'allocine';
 
@@ -48,12 +48,21 @@ export const parseShowtimes = (answer: Answer): Screening[] => {
 const dayFormat = new Intl.DateTimeFormat('fr-FR', { weekday: 'short', day: 'numeric', timeZone: TIME_ZONE });
 const timeFormat = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: TIME_ZONE });
 
-// "jeu. 12 : 17:45, 21:00 · ven. 13 : 20:30"
-export const describeShowtimes = (times: string[]): string =>
-  [...Map.groupBy(times.toSorted(), time => parisDay(time))]
-    // A day and its first time are kept on one line: only between the times and between the days can a line break
-    .map(([, day]) => `${dayFormat.format(new Date(day[0] ?? '')).replace(' ', '\u00a0')}\u00a0:\u00a0${day.map(time => timeFormat.format(new Date(time))).join(', ')}`)
-    .join(' · ');
+// The page of a cinema's showtimes, or of its showtimes on a day
+export const theaterUrl = (theater: Theater, day?: string): string => `https://www.allocine.fr/seance/salle_gen_csalle=${theater.id}.html${day ? `#shwt_date=${day}` : ''}`;
+
+// "CGR Lanester : jeu. 12 : 17:45, 21:00 · ven. 13 : 20:30", the cinema a link to its showtimes, and each day a link to
+// its showtimes that day. A day and its first time are kept on one line, and the dot after a day's times with them: only
+// between the times and between the days can a line break.
+export const describeShowtimes = (theater: Theater, times: string[]): Segment[] => [
+  { text: theaterLabel(theater), url: theaterUrl(theater), hint: 'toutes les séances' },
+  { text: ' : ' },
+  ...[...Map.groupBy(times.toSorted(), time => parisDay(time))].flatMap(([day, dayTimes], index) => [
+    ...(index > 0 ? [{ text: '\u00a0· ' }] : []),
+    { text: dayFormat.format(new Date(dayTimes[0] ?? '')).replace(' ', '\u00a0'), url: theaterUrl(theater, day), hint: `séances du jour à ${theaterLabel(theater)}` },
+    { text: `\u00a0:\u00a0${dayTimes.map(time => timeFormat.format(new Date(time))).join(', ')}` },
+  ]),
+];
 
 // "Ti Hanok (Auray)", but not "CGR Lanester (Lanester)"
 export const theaterLabel = (theater: Theater): string => (theater.name.includes(theater.place) ? theater.name : `${theater.name} (${theater.place})`);
@@ -83,7 +92,7 @@ export const toEvents = (showings: { theater: Theater; screenings: Screening[] }
       url: `https://www.allocine.fr/film/fichefilm_gen_cfilm=${movieId}.html`,
       details: theaters.map(theater => {
         const shown = entries.filter(entry => entry.theater === theater).map(({ screening }) => screening.startsAt);
-        return `${theaterLabel(theater)} : ${describeShowtimes([...new Set(shown)])}`;
+        return describeShowtimes(theater, [...new Set(shown)]);
       }),
     };
   });

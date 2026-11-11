@@ -33,7 +33,9 @@ describe('format', () => {
     expect(when(event('a'))).toBe('08:00 – 18:00');
     expect(when(event('a', { end: '2026-11-16T18:00:00+01:00' }))).toBe("jusqu'au lun. 16 nov.");
     expect(when(event('a', { start: '2026-11-15', end: undefined }))).toBe('');
-    expect(when(event('a', { details: ['Ti Hanok : jeu. 12 : 20:30', 'CGR Lanester : ven. 13 : 18:00'] }))).toBe('Ti Hanok : jeu. 12 : 20:30 ; CGR Lanester : ven. 13 : 18:00');
+    expect(when(event('a', { details: [[{ text: 'Ti Hanok', url: 'https://example.org/' }, { text: ' : jeu. 12 : 20:30' }], [{ text: 'CGR Lanester : ven. 13 : 18:00' }]] }))).toBe(
+      'Ti Hanok : jeu. 12 : 20:30 ; CGR Lanester : ven. 13 : 18:00',
+    );
   });
 });
 
@@ -60,14 +62,16 @@ describe('renderPage', () => {
     expect(html).toContain('href="rss/cinema.xml"');
   });
 
-  it('puts each line of details on its own, under the place', () => {
-    const html = renderPage(
-      [event('film', { category: 'cinema', place: 'Ti Hanok (Auray), CGR Lanester', details: ['Ti Hanok (Auray) : jeu. 12 : 20:30', 'CGR Lanester : ven. 13 : 18:00'] })],
-      SETTINGS,
-      NOW,
-    );
+  it('puts each line of details on its own, under the place, with its links', () => {
+    const details = [
+      [{ text: 'Ti Hanok (Auray)', url: 'https://example.org/ti-hanok', hint: 'toutes les séances' }, { text: ' : jeu. 12 : 20:30' }],
+      [{ text: 'CGR Lanester : ven. 13 : 18:00' }],
+    ];
+    const html = renderPage([event('film', { category: 'cinema', place: 'Ti Hanok (Auray), CGR Lanester', details })], SETTINGS, NOW);
     expect(html).toContain('<p class="ds-u-text-muted event__meta">Ciné · Ti Hanok (Auray), CGR Lanester, 12\u00a0km</p>');
-    expect(html).toContain('<p class="ds-u-text-muted event__meta">Ti Hanok (Auray) : jeu. 12 : 20:30</p>');
+    expect(html).toContain(
+      '<p class="ds-u-text-muted event__meta"><a href="https://example.org/ti-hanok">Ti Hanok (Auray)<span class="ds-u-visually-hidden">, toutes les séances</span></a> : jeu. 12 : 20:30</p>',
+    );
     expect(html).toContain('<p class="ds-u-text-muted event__meta">CGR Lanester : ven. 13 : 18:00</p>');
   });
 

@@ -1,6 +1,6 @@
 // The page, built with the design system, @dume/ds: its layout, its card for each event, its stack for each day's list,
 // its footer and its utilities. render/site.ts copies its stylesheet and fonts next to the page, as ds/.
-import { dayTitle, escape, listedOn, when, where } from './format.ts';
+import { dayTitle, escape, listedOn, segmentsHtml, when, where } from './format.ts';
 import { parisDay } from '../utils/dates.ts';
 import { CATEGORIES, type Category, type KnownEvent, type Source } from '../types.ts';
 
@@ -23,7 +23,7 @@ const renderEvent = (event: KnownEvent, now: Date, newDays: number): string => {
   const meta = [SHORT_LABELS[event.category], event.details ? '' : when(event), where(event)].filter(Boolean).join(' · ');
   return `<li class="ds-c-card event" data-category="${event.category}">
             <p class="event__title"><a href="${escape(event.url)}">${escape(event.title)}</a>${isNew(event, now, newDays) ? ' <strong class="ds-u-text-primary event__new">Nouveau</strong>' : ''}</p>
-            <p class="ds-u-text-muted event__meta">${escape(meta)}</p>${(event.details ?? []).map(line => `\n            <p class="ds-u-text-muted event__meta">${escape(line)}</p>`).join('')}
+            <p class="ds-u-text-muted event__meta">${escape(meta)}</p>${(event.details ?? []).map(line => `\n            <p class="ds-u-text-muted event__meta">${segmentsHtml(line)}</p>`).join('')}
           </li>`;
 };
 
