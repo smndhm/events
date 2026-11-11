@@ -1,8 +1,8 @@
 // The page, built with the design system, @dume/ds: its layout, its card for each event, its stack for each day's list,
 // its footer and its utilities. render/site.ts copies its stylesheet and fonts next to the page, as ds/.
-import { dayTitle, escape, listedOn, segmentsHtml, when, where } from './format.ts';
+import { dayTitle, escape, listedOn, showingDay, time, when, where } from './format.ts';
 import { parisDay } from '../utils/dates.ts';
-import { CATEGORIES, type Category, type KnownEvent, type Source } from '../types.ts';
+import { CATEGORIES, type Category, type KnownEvent, type Showing, type Source } from '../types.ts';
 
 export type PageSettings = {
   home: { name: string };
@@ -18,12 +18,36 @@ const updatedFormat = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', time
 
 const isNew = (event: KnownEvent, now: Date, newDays: number): boolean => now.getTime() - new Date(event.firstSeen).getTime() < newDays * 86_400_000;
 
+// A film's cinemas, the nearest first, each with its days and their times: the cinema links to all its showtimes, a day
+// to its showtimes that day, which its hidden text says, "mer. 11" alone not saying where it goes
+const renderShowings = (showings: Showing[]): string => `
+            <ul class="showings" role="list">
+              ${showings
+                .map(
+                  ({ place, url, distance, days }) => `<li class="showings__theater">
+                <p class="showings__name"><a href="${escape(url)}">${escape(place)}<span class="ds-u-visually-hidden">, toutes les séances</span></a>${distance === undefined ? '' : ` <span class="ds-u-text-muted">· ${distance}&nbsp;km</span>`}</p>
+                <dl class="showings__days">
+                  ${days
+                    .map(
+                      ({ day, url: dayUrl, times }) =>
+                        `<dt class="showings__day"><a href="${escape(dayUrl)}">${showingDay(day)}<span class="ds-u-visually-hidden">, séances du jour à ${escape(place)}</span></a></dt>
+                  <dd class="showings__times">${times.map(time).join(', ')}</dd>`,
+                    )
+                    .join('\n                  ')}
+                </dl>
+              </li>`,
+                )
+                .join('\n              ')}
+            </ul>`;
+
 const renderEvent = (event: KnownEvent, now: Date, newDays: number): string => {
-  // Details, such as a film's showtimes in each cinema, can run long: each on a line of its own, under the place
-  const meta = [SHORT_LABELS[event.category], event.details ? '' : when(event), where(event)].filter(Boolean).join(' · ');
+  // A film's showtimes are in lists under it, its cinemas each with its distance: its line says how many cinemas show it
+  const meta = event.showings
+    ? [SHORT_LABELS[event.category], event.showings.length > 1 ? `${event.showings.length} cinémas` : ''].filter(Boolean).join(' · ')
+    : [SHORT_LABELS[event.category], when(event), where(event)].filter(Boolean).join(' · ');
   return `<li class="ds-c-card event" data-category="${event.category}">
             <p class="event__title"><a href="${escape(event.url)}">${escape(event.title)}</a>${isNew(event, now, newDays) ? ' <strong class="ds-u-text-primary event__new">Nouveau</strong>' : ''}</p>
-            <p class="ds-u-text-muted event__meta">${escape(meta)}</p>${(event.details ?? []).map(line => `\n            <p class="ds-u-text-muted event__meta">${segmentsHtml(line)}</p>`).join('')}
+            <p class="ds-u-text-muted event__meta">${escape(meta)}</p>${event.showings ? renderShowings(event.showings) : ''}
           </li>`;
 };
 

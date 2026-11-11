@@ -1,7 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
-import allocine, { describeShowtimes, parseShowtimes, theaterLabel, theaterUrl, toEvents, type Screening, type Theater } from './allocine.ts';
-import { segmentsText } from '../render/format.ts';
+import allocine, { parseShowtimes, theaterLabel, theaterUrl, toEvents, toShowing, type Screening, type Theater } from './allocine.ts';
 import { context } from '../utils/testing.ts';
 
 // CGR Lanester's showtimes of 12 November 2026, its two pages, as Allociné sent them on 11 November
@@ -42,10 +41,10 @@ describe('parseShowtimes', () => {
 });
 
 describe('toEvents', () => {
-  it('makes one event per film, its cinemas each on a line, in the order given', () => {
+  it('makes one event per film, with its showtimes in each cinema, in the order given', () => {
     const [event] = toEvents([
-      { theater: TI_HANOK, screenings: [screening('2026-11-13T20:10:00+01:00')] },
-      { theater: CGR, screenings: [screening('2026-11-12T20:10:00+01:00'), screening('2026-11-12T13:40:00+01:00')] },
+      { theater: TI_HANOK, distance: 14, screenings: [screening('2026-11-13T20:10:00+01:00')] },
+      { theater: CGR, distance: 18, screenings: [screening('2026-11-12T20:10:00+01:00'), screening('2026-11-12T13:40:00+01:00')] },
     ]);
     expect(event).toMatchObject({
       id: 'allocine:1',
@@ -58,7 +57,10 @@ describe('toEvents', () => {
       lat: TI_HANOK.lat,
       url: 'https://www.allocine.fr/film/fichefilm_gen_cfilm=1.html',
     });
-    expect(event?.details?.map(segmentsText)).toEqual(['Ti Hanok (Auray) : ven. 13 : 20:10', 'CGR Lanester : jeu. 12 : 13:40, 20:10']);
+    expect(event?.showings?.map(({ place, distance, days }) => ({ place, distance, days: days.map(({ day, times }) => [day, times]) }))).toEqual([
+      { place: 'Ti Hanok (Auray)', distance: 14, days: [['2026-11-13', ['2026-11-13T20:10:00+01:00']]] },
+      { place: 'CGR Lanester', distance: 18, days: [['2026-11-12', ['2026-11-12T13:40:00+01:00', '2026-11-12T20:10:00+01:00']]] },
+    ]);
   });
 
   it('says nothing of the version of a French film', () => {
@@ -78,18 +80,21 @@ describe('theaterLabel', () => {
   });
 });
 
-describe('describeShowtimes', () => {
-  const segments = describeShowtimes(TI_HANOK, ['2026-07-02T20:00:00+02:00', '2026-07-01T22:30:00+02:00', '2026-07-01T14:00:00+02:00']);
+describe('toShowing', () => {
+  const showing = toShowing(TI_HANOK, 14, ['2026-07-02T20:00:00+02:00', '2026-07-01T22:30:00+02:00', '2026-07-01T14:00:00+02:00', '2026-07-01T14:00:00+02:00']);
 
-  it('groups the times by day, in Paris time', () => {
-    expect(segmentsText(segments)).toBe('Ti Hanok (Auray) : mer.\u00a01\u00a0:\u00a014:00, 22:30\u00a0· jeu.\u00a02\u00a0:\u00a020:00');
+  it('groups the times by day, in Paris time, once each', () => {
+    expect(showing.days.map(({ day, times }) => [day, times])).toEqual([
+      ['2026-07-01', ['2026-07-01T14:00:00+02:00', '2026-07-01T22:30:00+02:00']],
+      ['2026-07-02', ['2026-07-02T20:00:00+02:00']],
+    ]);
   });
 
   it('links the cinema to its showtimes, and each day to its showtimes that day', () => {
-    expect(segments.filter(({ url }) => url)).toEqual([
-      { text: 'Ti Hanok (Auray)', url: 'https://www.allocine.fr/seance/salle_gen_csalle=P0591.html', hint: 'toutes les séances' },
-      { text: 'mer.\u00a01', url: 'https://www.allocine.fr/seance/salle_gen_csalle=P0591.html#shwt_date=2026-07-01', hint: 'séances du jour à Ti Hanok (Auray)' },
-      { text: 'jeu.\u00a02', url: 'https://www.allocine.fr/seance/salle_gen_csalle=P0591.html#shwt_date=2026-07-02', hint: 'séances du jour à Ti Hanok (Auray)' },
+    expect(showing.url).toBe('https://www.allocine.fr/seance/salle_gen_csalle=P0591.html');
+    expect(showing.days.map(({ url }) => url)).toEqual([
+      'https://www.allocine.fr/seance/salle_gen_csalle=P0591.html#shwt_date=2026-07-01',
+      'https://www.allocine.fr/seance/salle_gen_csalle=P0591.html#shwt_date=2026-07-02',
     ]);
   });
 });

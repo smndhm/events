@@ -50,3 +50,35 @@
 .event__new {
   font-size: var(--ds-b-size-12);
 }
+
+/* A film's cinemas, the nearest first: each its name, then its days, one a line, each beside its times */
+.showings {
+  display: grid;
+  padding: 0;
+  margin: 0;
+  gap: var(--ds-b-size-12);
+  list-style: none;
+  margin-block-start: var(--ds-b-size-12);
+}
+
+.showings__name {
+  margin: 0;
+  font-weight: 700;
+}
+
+.showings__days {
+  display: grid;
+  margin: 0;
+  gap: var(--ds-b-size-4) var(--ds-b-size-16);
+  grid-template-columns: max-content 1fr;
+  margin-block-start: var(--ds-b-size-4);
+}
+
+.showings__day {
+  margin: 0;
+}
+
+.showings__times {
+  margin: 0;
+  color: var(--ds-b-color-text-muted);
+}

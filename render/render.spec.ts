@@ -3,9 +3,27 @@ import { describe, expect, it } from 'vitest';
 import { dayTitle, when } from './format.ts';
 import { renderPage } from './page.ts';
 import { renderRss } from './rss.ts';
-import { CATEGORIES, type KnownEvent } from '../types.ts';
+import { CATEGORIES, type KnownEvent, type Showing } from '../types.ts';
 
 const NOW = new Date('2026-11-11T09:00:00Z');
+
+const SHOWINGS: Showing[] = [
+  {
+    place: 'Ti Hanok (Auray)',
+    url: 'https://example.org/ti-hanok',
+    distance: 14,
+    days: [
+      { day: '2026-11-11', url: 'https://example.org/ti-hanok#2026-11-11', times: ['2026-11-11T15:45:00+01:00', '2026-11-11T18:00:00+01:00'] },
+      { day: '2026-11-12', url: 'https://example.org/ti-hanok#2026-11-12', times: ['2026-11-12T17:25:00+01:00'] },
+    ],
+  },
+  {
+    place: 'CGR Lanester',
+    url: 'https://example.org/cgr',
+    distance: 18,
+    days: [{ day: '2026-11-12', url: 'https://example.org/cgr#2026-11-12', times: ['2026-11-12T20:30:00+01:00'] }],
+  },
+];
 const SETTINGS = { home: { name: 'Landévant' }, radiusKm: 25, horizonDays: 45, newDays: 2, sources: [{ label: 'Brocabrac', homepage: 'https://brocabrac.fr/56/' }] };
 
 const event = (id: string, fields: Partial<KnownEvent> = {}): KnownEvent => ({
@@ -33,9 +51,7 @@ describe('format', () => {
     expect(when(event('a'))).toBe('08:00 – 18:00');
     expect(when(event('a', { end: '2026-11-16T18:00:00+01:00' }))).toBe("jusqu'au lun. 16 nov.");
     expect(when(event('a', { start: '2026-11-15', end: undefined }))).toBe('');
-    expect(when(event('a', { details: [[{ text: 'Ti Hanok', url: 'https://example.org/' }, { text: ' : jeu. 12 : 20:30' }], [{ text: 'CGR Lanester : ven. 13 : 18:00' }]] }))).toBe(
-      'Ti Hanok : jeu. 12 : 20:30 ; CGR Lanester : ven. 13 : 18:00',
-    );
+    expect(when(event('a', { showings: SHOWINGS }))).toBe('Ti Hanok (Auray) : mer.\u00a011 15:45, 18:00 · jeu.\u00a012 17:25 ; CGR Lanester : jeu.\u00a012 20:30');
   });
 });
 
@@ -62,17 +78,16 @@ describe('renderPage', () => {
     expect(html).toContain('href="rss/cinema.xml"');
   });
 
-  it('puts each line of details on its own, under the place, with its links', () => {
-    const details = [
-      [{ text: 'Ti Hanok (Auray)', url: 'https://example.org/ti-hanok', hint: 'toutes les séances' }, { text: ' : jeu. 12 : 20:30' }],
-      [{ text: 'CGR Lanester : ven. 13 : 18:00' }],
-    ];
-    const html = renderPage([event('film', { category: 'cinema', place: 'Ti Hanok (Auray), CGR Lanester', details })], SETTINGS, NOW);
-    expect(html).toContain('<p class="ds-u-text-muted event__meta">Ciné · Ti Hanok (Auray), CGR Lanester, 12\u00a0km</p>');
+  it('lists the cinemas of a film, each with its days and their times, and its links', () => {
+    const html = renderPage([event('film', { category: 'cinema', place: 'Ti Hanok (Auray), CGR Lanester', showings: SHOWINGS })], SETTINGS, NOW);
+    expect(html).toContain('<p class="ds-u-text-muted event__meta">Ciné · 2 cinémas</p>');
     expect(html).toContain(
-      '<p class="ds-u-text-muted event__meta"><a href="https://example.org/ti-hanok">Ti Hanok (Auray)<span class="ds-u-visually-hidden">, toutes les séances</span></a> : jeu. 12 : 20:30</p>',
+      '<p class="showings__name"><a href="https://example.org/ti-hanok">Ti Hanok (Auray)<span class="ds-u-visually-hidden">, toutes les séances</span></a> <span class="ds-u-text-muted">· 14&nbsp;km</span></p>',
     );
-    expect(html).toContain('<p class="ds-u-text-muted event__meta">CGR Lanester : ven. 13 : 18:00</p>');
+    expect(html).toContain(
+      '<dt class="showings__day"><a href="https://example.org/ti-hanok#2026-11-11">mer.\u00a011<span class="ds-u-visually-hidden">, séances du jour à Ti Hanok (Auray)</span></a></dt>',
+    );
+    expect(html).toContain('<dd class="showings__times">15:45, 18:00</dd>');
   });
 
   it('is styled by the design system, next to it', () => {

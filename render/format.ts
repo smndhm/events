@@ -1,14 +1,5 @@
 import { addDays, isDayOnly, lastDay, parisDay, TIME_ZONE } from '../utils/dates.ts';
-import type { KnownEvent, Segment } from '../types.ts';
-
-// A line of details as text, its links as their text
-export const segmentsText = (segments: Segment[]): string => segments.map(({ text }) => text).join('');
-
-// A line of details as HTML, its links as links, their hint for screen readers only
-export const segmentsHtml = (segments: Segment[]): string =>
-  segments
-    .map(({ text, url, hint }) => (url ? `<a href="${escape(url)}">${escape(text)}${hint ? `<span class="ds-u-visually-hidden">, ${escape(hint)}</span>` : ''}</a>` : escape(text)))
-    .join('');
+import type { KnownEvent, Showing } from '../types.ts';
 
 export const escape = (text: string): string => text.replace(/[&<>"']/g, char => `&#${char.charCodeAt(0)};`);
 
@@ -28,10 +19,20 @@ export const dayTitle = (day: string, today: string): string => {
 
 export const shortDay = (day: string): string => shortDayFormat.format(atNoon(day));
 
-// The details a source gave, such as a film's showtimes; else "10:00 – 18:00", "jusqu'au dim. 16 nov.", or nothing for a
-// bare day
+const showingDayFormat = new Intl.DateTimeFormat('fr-FR', { weekday: 'short', day: 'numeric', timeZone: 'UTC' });
+
+// "mer. 11", on one line
+export const showingDay = (day: string): string => showingDayFormat.format(atNoon(day)).replace(' ', '\u00a0');
+
+// "20:30"
+export const time = (date: string): string => timeFormat.format(new Date(date));
+
+// "Ti Hanok (Auray) : mer. 11 15:45, 18:00 · jeu. 12 17:25", for the feeds
+const showingText = ({ place, days }: Showing): string => `${place} : ${days.map(({ day, times }) => `${showingDay(day)} ${times.map(time).join(', ')}`).join(' · ')}`;
+
+// A film's showtimes in each cinema; else "10:00 – 18:00", "jusqu'au dim. 16 nov.", or nothing for a bare day
 export const when = (event: KnownEvent): string => {
-  if (event.details) return event.details.map(segmentsText).join(' ; ');
+  if (event.showings) return event.showings.map(showingText).join(' ; ');
   const last = lastDay(event);
   if (last !== parisDay(event.start)) return `jusqu'au ${shortDay(last)}`;
   if (isDayOnly(event.start)) return '';
