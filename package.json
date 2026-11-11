@@ -1,0 +1,29 @@
+{
+  "name": "events",
+  "version": "1.0.0",
+  "private": true,
+  "description": "What is coming up around home: flea markets, original version films, special events. A web page and RSS feeds, rebuilt every day.",
+  "type": "module",
+  "packageManager": "pnpm@12.18.0",
+  "scripts": {
+    "build": "node ./build.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:a11y": "node ./a11y.ts",
+    "lint": "prettier . --check && oxlint && dev-config sync --check",
+    "lint:fix": "prettier . --write && oxlint --fix",
+    "prepare": "dev-config hooks"
+  },
+  "author": "smndhm",
+  "license": "ISC",
+  "prettier": "@dume/dev-config/lint/prettier",
+  "devDependencies": {
+    "@dume/dev-config": "1.4.0",
+    "@types/node": "24.19.2",
+    "oxlint": "1.92.0",
+    "playwright": "1.65.0",
+    "prettier": "3.9.10",
+    "typescript": "7.0.2",
+    "vitest": "5.1.0"
+  }
+}

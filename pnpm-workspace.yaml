@@ -1,0 +1,11 @@
+# Dependencies allowed to run their install scripts (pnpm fails on the ones not listed)
+allowBuilds:
+  # Its binary comes with its optional dependencies: its install script only checks it
+  esbuild: false
+
+# My own packages (smndhm/dev-config) can be used as soon as they are published
+minimumReleaseAgeExclude:
+  - '@dume/*'
+
+# Exact versions when adding a dependency: a caret would let in a release nobody tested
+savePrefix: ''
