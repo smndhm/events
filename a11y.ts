@@ -50,7 +50,8 @@ try {
 
     await page.getByLabel('Films en VO ou en français').check();
     const visible = await page.locator('.event:visible').count();
-    if (visible !== 1) failures.push(`${colorScheme}: the film filter shows ${visible} events, not 1`);
+    // The film, under each of its two days
+    if (visible !== 2) failures.push(`${colorScheme}: the film filter shows ${visible} events, not the film on its 2 days`);
     await page.close();
   }
 } finally {

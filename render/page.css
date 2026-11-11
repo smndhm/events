@@ -28,19 +28,8 @@
   margin-block: var(--ds-b-size-4) 0;
 }
 
-/* A film's cinemas, the nearest first, each folded, then each of its days: one under the other, a little apart */
+/* A film's cinemas on a day, the nearest first: one under the other, a little apart */
 .showings {
-  display: flex;
-  flex-direction: column;
-  padding: 0;
-  margin: 0;
-  gap: var(--ds-b-size-8);
-  list-style: none;
-  margin-block-start: var(--ds-b-size-12);
-}
-
-/* A cinema's days, under its name, set in from it */
-.showings__days {
   display: flex;
   flex-direction: column;
   padding: 0;
@@ -48,19 +37,4 @@
   gap: var(--ds-b-size-4);
   list-style: none;
   margin-block-start: var(--ds-b-size-8);
-  padding-inline-start: var(--ds-b-size-16);
-}
-
-/* A day's times, then its link to Allociné, under it, set in from it */
-.showings__times,
-.showings__link {
-  margin: 0;
-  margin-block-start: var(--ds-b-size-4);
-  padding-inline-start: var(--ds-b-size-16);
-}
-
-/* The cinema's link, under its days, in line with them */
-.showings__link--theater {
-  margin-block-start: var(--ds-b-size-8);
-  padding-inline-start: 0;
 }
