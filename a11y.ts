@@ -1,5 +1,6 @@
 // pnpm test:a11y: writes the site, with the design system, from the Brocabrac page of __fixtures__, plus a film so it has two categories and its
-// filter, then runs axe on it (@dume/dev-config/a11y) in light and dark, and checks the filter hides what it leaves out.
+// filter, then runs axe on it (@dume/dev-config/a11y) in light and dark, checks the filter hides what it leaves out, and
+// that, read later, what has passed is hidden.
 // Needs Playwright's Chromium (pnpm exec playwright install chromium), or another one at CHROMIUM_PATH.
 import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -54,6 +55,25 @@ try {
     if (visible !== 2) failures.push(`${colorScheme}: the film filter shows ${visible} events, not the film on its 2 days`);
     await page.close();
   }
+
+  // Read on Saturday 14 November at 19:00, three days after the build: what has passed is hidden (render/page.js)
+  const now = new Date('2026-11-14T19:00:00+01:00');
+  const page = await browser.newPage();
+  await page.clock.setFixedTime(now);
+  await page.goto(url);
+  const read = await page.evaluate(() => ({
+    hidden: document.querySelectorAll('.event[hidden]').length,
+    ends: [...document.querySelectorAll('.event:not([hidden])')].map(event => event.getAttribute('data-ends') ?? ''),
+    starts: [...document.querySelectorAll('.showings__theater:not([hidden]) [data-starts]')].map(link => link.getAttribute('data-starts') ?? ''),
+    headings: Object.fromEntries([...document.querySelectorAll('.day:not([hidden])')].map(day => [day.getAttribute('data-day'), day.querySelector('h2')?.textContent])),
+  }));
+  if (read.hidden === 0) failures.push('read later, no event is hidden');
+  if (read.ends.some(ends => new Date(ends) <= now)) failures.push('read later, an event over is still shown');
+  if (read.starts.some(starts => new Date(starts) <= now)) failures.push('read later, a showtime started is still shown');
+  if (!read.starts.includes('2026-11-14T20:30:00+01:00')) failures.push("read later, the evening's showtime is gone");
+  if (read.headings['2026-11-14'] !== "Aujourd'hui" || read.headings['2026-11-15'] !== 'Demain')
+    failures.push(`read later, the days are misnamed: ${JSON.stringify(read.headings)}`);
+  await page.close();
 } finally {
   await browser.close();
 }

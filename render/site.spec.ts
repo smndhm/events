@@ -10,7 +10,16 @@ describe('writeSite', () => {
     writeSite(dir, [], { home: { name: 'Landévant' }, radiusKm: 25, horizonDays: 45, newDays: 2, sources: [], siteUrl: 'https://example.org/' }, new Date('2026-11-11T09:00:00Z'));
     expect(readFileSync(join(dir, 'index.html'), 'utf8')).toContain('Rien de prévu');
     expect(existsSync(join(dir, 'ics'))).toBe(false);
-    for (const file of ['rss.xml', 'rss/brocante.xml', 'rss/cinema.xml', 'rss/sortie.xml', 'page.css', 'ds/styles.css', 'ds/fonts/bricolage-grotesque-latin-wght-normal.woff2']) {
+    for (const file of [
+      'rss.xml',
+      'rss/brocante.xml',
+      'rss/cinema.xml',
+      'rss/sortie.xml',
+      'page.css',
+      'page.js',
+      'ds/styles.css',
+      'ds/fonts/bricolage-grotesque-latin-wght-normal.woff2',
+    ]) {
       expect(existsSync(join(dir, file)), file).toBe(true);
     }
   });
