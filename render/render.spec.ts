@@ -3,9 +3,27 @@ import { describe, expect, it } from 'vitest';
 import { dayTitle, when } from './format.ts';
 import { renderPage } from './page.ts';
 import { renderRss } from './rss.ts';
-import { CATEGORIES, type KnownEvent } from '../types.ts';
+import { CATEGORIES, type KnownEvent, type Showing } from '../types.ts';
 
 const NOW = new Date('2026-11-11T09:00:00Z');
+
+const SHOWINGS: Showing[] = [
+  {
+    place: 'Ti Hanok (Auray)',
+    url: 'https://example.org/ti-hanok',
+    distance: 14,
+    days: [
+      { day: '2026-11-11', url: 'https://example.org/ti-hanok#2026-11-11', times: ['2026-11-11T15:45:00+01:00', '2026-11-11T18:00:00+01:00'] },
+      { day: '2026-11-12', url: 'https://example.org/ti-hanok#2026-11-12', times: ['2026-11-12T17:25:00+01:00'] },
+    ],
+  },
+  {
+    place: 'CGR Lanester',
+    url: 'https://example.org/cgr',
+    distance: 18,
+    days: [{ day: '2026-11-12', url: 'https://example.org/cgr#2026-11-12', times: ['2026-11-12T20:30:00+01:00'] }],
+  },
+];
 const SETTINGS = { home: { name: 'Landévant' }, radiusKm: 25, horizonDays: 45, newDays: 2, sources: [{ label: 'Brocabrac', homepage: 'https://brocabrac.fr/56/' }] };
 
 const event = (id: string, fields: Partial<KnownEvent> = {}): KnownEvent => ({
@@ -33,9 +51,7 @@ describe('format', () => {
     expect(when(event('a'))).toBe('08:00 – 18:00');
     expect(when(event('a', { end: '2026-11-16T18:00:00+01:00' }))).toBe("jusqu'au lun. 16 nov.");
     expect(when(event('a', { start: '2026-11-15', end: undefined }))).toBe('');
-    expect(when(event('a', { details: [[{ text: 'Ti Hanok', url: 'https://example.org/' }, { text: ' : jeu. 12 : 20:30' }], [{ text: 'CGR Lanester : ven. 13 : 18:00' }]] }))).toBe(
-      'Ti Hanok : jeu. 12 : 20:30 ; CGR Lanester : ven. 13 : 18:00',
-    );
+    expect(when(event('a', { showings: SHOWINGS }))).toBe('Ti Hanok (Auray) : mer.\u00a011 15:45, 18:00 · jeu.\u00a012 17:25 ; CGR Lanester : jeu.\u00a012 20:30');
   });
 });
 
@@ -46,9 +62,9 @@ describe('renderPage', () => {
     expect(html.indexOf('Dimanche 15 novembre')).toBeLessThan(html.indexOf('>sunday<'));
   });
 
-  it('marks the events first seen recently as new', () => {
+  it('marks the events first seen recently as new, with a tag', () => {
     const html = renderPage([event('old'), event('fresh', { firstSeen: '2026-11-10T09:00:00.000Z' })], SETTINGS, NOW);
-    expect(html.match(/>Nouveau</g)).toHaveLength(1);
+    expect(html.match(/<span class="ds-c-tag">Nouveau<\/span>/g)).toHaveLength(1);
   });
 
   it('escapes what the sites write', () => {
@@ -58,21 +74,43 @@ describe('renderPage', () => {
   it('offers a filter once there are two categories', () => {
     expect(renderPage([event('a')], SETTINGS, NOW)).not.toContain('<fieldset');
     const html = renderPage([event('a'), event('b', { category: 'cinema' })], SETTINGS, NOW);
-    expect(html).toContain('id="filter-cinema"');
+    expect(html).toContain('<input class="ds-c-radio__control" type="radio" name="filter" id="filter-cinema"><label class="ds-c-radio__label" for="filter-cinema">');
     expect(html).toContain('href="rss/cinema.xml"');
   });
 
-  it('puts each line of details on its own, under the place, with its links', () => {
-    const details = [
-      [{ text: 'Ti Hanok (Auray)', url: 'https://example.org/ti-hanok', hint: 'toutes les séances' }, { text: ' : jeu. 12 : 20:30' }],
-      [{ text: 'CGR Lanester : ven. 13 : 18:00' }],
-    ];
-    const html = renderPage([event('film', { category: 'cinema', place: 'Ti Hanok (Auray), CGR Lanester', details })], SETTINGS, NOW);
-    expect(html).toContain('<p class="ds-u-text-muted event__meta">Ciné · Ti Hanok (Auray), CGR Lanester, 12\u00a0km</p>');
-    expect(html).toContain(
-      '<p class="ds-u-text-muted event__meta"><a href="https://example.org/ti-hanok">Ti Hanok (Auray)<span class="ds-u-visually-hidden">, toutes les séances</span></a> : jeu. 12 : 20:30</p>',
+  it('folds each cinema of a film, then each of its days, with their links', () => {
+    const html = renderPage([event('film', { category: 'cinema', place: 'Ti Hanok (Auray), CGR Lanester', showings: SHOWINGS })], SETTINGS, NOW);
+    expect(html).toContain('<p class="ds-u-text-muted event__meta">Ciné · 2 cinémas</p>');
+    expect(html).toContain('<summary><strong>Ti Hanok (Auray)</strong> <span class="ds-u-text-muted">14&nbsp;km · 2 jours</span></summary>');
+    expect(html).toContain('<summary>mer.\u00a011 <span class="ds-u-text-muted">· 2 séances</span></summary>');
+    expect(html).toMatch(
+      /<p class="showings__times"><a href="ics\/[0-9a-f]{16}\.ics">15:45<span class="ds-u-visually-hidden">, ajouter la séance à l&#39;agenda<\/span><\/a>, <a href="ics\/[0-9a-f]{16}\.ics">18:00/,
     );
-    expect(html).toContain('<p class="ds-u-text-muted event__meta">CGR Lanester : ven. 13 : 18:00</p>');
+    expect(html).toContain(
+      '<a href="https://example.org/ti-hanok#2026-11-11">Séances du jour sur Allociné<span class="ds-u-visually-hidden"> : Ti Hanok (Auray), mer.\u00a011</span></a>',
+    );
+    expect(html).toContain('<a href="https://example.org/ti-hanok">Toutes ses séances sur Allociné<span class="ds-u-visually-hidden"> : Ti Hanok (Auray)</span></a>');
+  });
+
+  it('adds an event to the calendar with its file', () => {
+    expect(renderPage([event('fair')], SETTINGS, NOW)).toMatch(
+      /<p class="event__meta"><small><a href="ics\/[0-9a-f]{16}\.ics">Ajouter à l&#39;agenda<span class="ds-u-visually-hidden"> : fair<\/span><\/a><\/small><\/p>/,
+    );
+  });
+
+  it('orders a day: the events already started, then those of the whole day, then by time, the nearest first', () => {
+    const html = renderPage(
+      [
+        event('late', { start: '2026-11-15T20:00:00+01:00' }),
+        event('far-morning', { start: '2026-11-15T10:00:00+01:00', distance: 20 }),
+        event('near-morning', { start: '2026-11-15T10:00:00+01:00', distance: 5 }),
+        event('all-day', { start: '2026-11-15', end: undefined }),
+      ],
+      SETTINGS,
+      NOW,
+    );
+    const order = ['all-day', 'near-morning', 'far-morning', 'late'].map(id => html.indexOf(`>${id}<`));
+    expect(order).toEqual(order.toSorted((a, b) => a - b));
   });
 
   it('is styled by the design system, next to it', () => {

@@ -17,5 +17,5 @@ jobs:
         pnpm run typecheck
         pnpm run lint
         pnpm run test
-        pnpm exec playwright install --with-deps chromium
+        pnpm exec playwright install chromium
         pnpm run test:a11y

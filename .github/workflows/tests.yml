@@ -22,7 +22,9 @@ jobs:
       # On the pages of __fixtures__: the sites themselves are only read by the Site workflow
       - name: Run tests
         run: pnpm run test
+      # Chromium alone, from Playwright: the runner has the libraries it needs. Not --with-deps, which also installs fonts
+      # with apt, whose mirrors the runner cannot always reach, and which the audit does not need
       - name: Install Chromium
-        run: pnpm exec playwright install --with-deps chromium
+        run: pnpm exec playwright install chromium
       - name: Run axe on the page
         run: pnpm run test:a11y

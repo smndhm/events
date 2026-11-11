@@ -8,7 +8,7 @@ import { pathToFileURL } from 'node:url';
 import { audit } from '@dume/dev-config/a11y';
 import { chromium } from 'playwright';
 import { writeSite } from './render/site.ts';
-import { describeShowtimes } from './sources/allocine.ts';
+import { toShowing } from './sources/allocine.ts';
 import { joinDays, parsePage } from './sources/brocabrac.ts';
 import type { KnownEvent } from './types.ts';
 
@@ -27,9 +27,10 @@ const events: KnownEvent[] = [
     url: 'https://example.org/film',
     distance: 9,
     firstSeen: NOW.toISOString(),
-    // With its links to the cinema and to each day's showtimes
-    details: [
-      describeShowtimes({ id: 'P0591', name: 'Ti Hanok', address: '', place: 'Auray', lat: 47.67, lon: -3.01 }, ['2026-11-14T20:30:00+01:00', '2026-11-15T16:00:00+01:00']),
+    // With its cinemas, their days and their times, and their links
+    showings: [
+      toShowing({ id: 'P0591', name: 'Ti Hanok', address: '', place: 'Auray', lat: 47.67, lon: -3.01 }, 14, ['2026-11-14T20:30:00+01:00', '2026-11-15T16:00:00+01:00']),
+      toShowing({ id: 'P9556', name: 'CGR Lanester', address: '', place: 'Lanester', lat: 47.78, lon: -3.36 }, 18, ['2026-11-14T18:00:00+01:00']),
     ],
   },
 ];

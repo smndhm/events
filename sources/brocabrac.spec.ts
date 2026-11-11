@@ -80,15 +80,36 @@ describe('joinDays', () => {
 const answer = (status: number, body = ''): Response => new Response(body, { status, headers: status === 302 ? { Location: '/56/' } : {} });
 
 describe('brocabrac', () => {
-  it('reads the pages until one redirects', async () => {
-    const fetch = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(answer(200, FIRST_PAGE)).mockResolvedValueOnce(answer(200, LAST_PAGE)).mockResolvedValueOnce(answer(302));
-    const events = await brocabrac({ department: '56' }).fetchEvents(context());
-    expect(fetch.mock.calls.map(([url]) => url)).toEqual(['https://brocabrac.fr/56/', 'https://brocabrac.fr/56/?p=2', 'https://brocabrac.fr/56/?p=3']);
+  it('reads the pages of each kind until one redirects', async () => {
+    const fetch = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(answer(200, FIRST_PAGE))
+      .mockResolvedValueOnce(answer(302))
+      .mockResolvedValueOnce(answer(200, LAST_PAGE))
+      .mockResolvedValueOnce(answer(302));
+    const events = await brocabrac({ department: '56', kinds: ['vide-grenier', 'brocante'] }).fetchEvents(context());
+    expect(fetch.mock.calls.map(([url]) => url)).toEqual([
+      'https://brocabrac.fr/56/vide-grenier/',
+      'https://brocabrac.fr/56/vide-grenier/?p=2',
+      'https://brocabrac.fr/56/brocante/',
+      'https://brocabrac.fr/56/brocante/?p=2',
+    ]);
     expect(events.length).toBeGreaterThan(30);
+  });
+
+  it('joins an event listed under two kinds', async () => {
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(answer(200, LAST_PAGE))
+      .mockResolvedValueOnce(answer(302))
+      .mockResolvedValueOnce(answer(200, LAST_PAGE))
+      .mockResolvedValueOnce(answer(302));
+    const twice = await brocabrac({ department: '56', kinds: ['vide-grenier', 'brocante'] }).fetchEvents(context());
+    expect(new Set(twice.map(({ id }) => id)).size).toBe(twice.length);
+    expect(twice).toEqual(joinDays(parsePage(LAST_PAGE)));
   });
 
   it('fails when a page fails', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(answer(503));
-    await expect(brocabrac({ department: '56' }).fetchEvents(context())).rejects.toThrow('https://brocabrac.fr/56/ answered 503');
+    await expect(brocabrac({ department: '56', kinds: ['vide-grenier'] }).fetchEvents(context())).rejects.toThrow('https://brocabrac.fr/56/vide-grenier/ answered 503');
   });
 });

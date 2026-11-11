@@ -25,13 +25,21 @@ export type Event = {
   lon?: number;
   url: string;
   image?: string;
-  // Lines shown in place of the hours, such as a film's showtimes in each cinema
-  details?: Segment[][];
+  // A film's showtimes in each cinema showing it, shown in place of the hours
+  showings?: Showing[];
+  // How long it lasts, such as a film, in minutes: the end of each showtime in a calendar
+  minutes?: number;
 };
 
-// A piece of a line of details: text, or a link. `hint`, read by screen readers only, says where the link goes when its
-// text alone does not ("mer. 11": the showtimes of that day, in that cinema)
-export type Segment = { text: string; url?: string; hint?: string };
+// A film's showtimes in one cinema: its page of showtimes, how far it is, and each day with its page and its times
+export type Showing = {
+  place: string;
+  // The street and the town, for a calendar
+  address?: string;
+  url: string;
+  distance?: number;
+  days: { day: string; url: string; times: string[] }[];
+};
 
 // An event as the page and the feeds show it: with how far it is, and the day it was first seen, which the state
 // branch remembers

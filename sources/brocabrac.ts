@@ -1,5 +1,6 @@
-// Brocabrac, flea markets and garage sales by department: brocabrac.fr/56/, then ?p=2, ?p=3... until a page holds no
-// event, or redirects. Each event is in the page as schema.org JSON-LD.
+// Brocabrac, flea markets and garage sales by department and kind: brocabrac.fr/56/vide-grenier/, then ?p=2, ?p=3...
+// until a page holds no event, or redirects. Each event is in the page as schema.org JSON-LD. Only the kinds asked for
+// are read: the site also lists house clearances, toy fairs, Christmas markets...
 import { addDays, isDayOnly, lastDay, parisDay } from '../utils/dates.ts';
 import { fetchPage } from '../utils/http.ts';
 import { decodeEntities, readJsonLdEvents, type JsonLdEvent } from '../utils/json-ld.ts';
@@ -7,7 +8,7 @@ import type { Event, Source } from '../types.ts';
 
 const NAME = 'brocabrac';
 
-// About forty events a page: the Morbihan's next year takes four or five
+// About forty events a page: the Morbihan's garage sales of the next year take two or three
 const MAX_PAGES = 15;
 
 const toNumber = (value: number | string | undefined): number | undefined => {
@@ -70,19 +71,25 @@ export const joinDays = (occurrences: Event[]): Event[] => {
   });
 };
 
-export default function brocabrac({ department }: { department: string }): Source {
+// Brocabrac's kinds, as in the addresses of their listings: brocabrac.fr/56/vide-grenier/
+export type Kind = 'vide-grenier' | 'brocante' | 'vide-maison' | 'braderie' | 'bourse-jouets' | 'marche-noel';
+
+export default function brocabrac({ department, kinds }: { department: string; kinds: Kind[] }): Source {
   return {
     name: NAME,
     label: 'Brocabrac',
     homepage: `https://brocabrac.fr/${department}/`,
     fetchEvents: async () => {
       const occurrences: Event[] = [];
-      for (let page = 1; page <= MAX_PAGES; page++) {
-        const { status, html } = await fetchPage(`https://brocabrac.fr/${department}/${page > 1 ? `?p=${page}` : ''}`);
-        const events = status === 200 ? parsePage(html) : [];
-        if (events.length === 0) break;
-        occurrences.push(...events);
+      for (const kind of kinds) {
+        for (let page = 1; page <= MAX_PAGES; page++) {
+          const { status, html } = await fetchPage(`https://brocabrac.fr/${department}/${kind}/${page > 1 ? `?p=${page}` : ''}`);
+          const events = status === 200 ? parsePage(html) : [];
+          if (events.length === 0) break;
+          occurrences.push(...events);
+        }
       }
+      // An event of two kinds is in both listings: the same days, joined into one
       return joinDays(occurrences);
     },
   };
