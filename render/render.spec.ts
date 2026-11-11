@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { dayTitle, when } from './format.ts';
-import { renderPage } from './page.ts';
+import { endsAt, renderPage } from './page.ts';
 import { renderRss } from './rss.ts';
 import { CATEGORIES, type KnownEvent, type Showing } from '../types.ts';
 
@@ -86,12 +86,12 @@ describe('renderPage', () => {
     );
     const [today = '', tomorrow = ''] = html.split('<section class="day"').slice(1);
     expect(today).toContain("Aujourd'hui");
-    expect(today).toContain('<p class="ds-u-text-muted event__meta">Ciné · 1 cinéma</p>');
+    expect(today).toContain('<p class="ds-u-text-muted event__meta">Ciné</p>');
     expect(today).toMatch(/>15:45<.*>18:00</);
     expect(today).not.toContain('17:25');
     expect(today).not.toContain('CGR Lanester');
     expect(tomorrow).toContain('Demain');
-    expect(tomorrow).toContain('<p class="ds-u-text-muted event__meta">Ciné · 2 cinémas</p>');
+    expect(tomorrow.match(/class="showings__theater"/g)).toHaveLength(2);
     expect(tomorrow).toMatch(/Ti Hanok \(Auray\).*>17:25<[\s\S]*CGR Lanester.*>20:30</);
     expect(tomorrow).not.toContain('15:45');
   });
@@ -99,7 +99,7 @@ describe('renderPage', () => {
   it('gives a cinema a line, with its showtimes of the day on Allociné, its distance and its times', () => {
     const html = renderPage([event('film', { category: 'cinema', showings: SHOWINGS })], SETTINGS, NOW);
     expect(html).toMatch(
-      /<li><a href="https:\/\/example\.org\/ti-hanok#2026-11-11"><strong>Ti Hanok \(Auray\)<\/strong><span class="ds-u-visually-hidden">, séances du mer\.\u00a011 sur Allociné<\/span><\/a> <span class="ds-u-text-muted">14&nbsp;km<\/span> · <a href="ics\/[0-9a-f]{16}\.ics">15:45<span class="ds-u-visually-hidden">, ajouter la séance à l&#39;agenda<\/span><\/a>, <a href="ics\/[0-9a-f]{16}\.ics">18:00/,
+      /<li class="showings__theater"><a href="https:\/\/example\.org\/ti-hanok#2026-11-11"><strong>Ti Hanok \(Auray\)<\/strong><span class="ds-u-visually-hidden">, séances du mer\.\u00a011 sur Allociné<\/span><\/a> <span class="ds-u-text-muted">14&nbsp;km<\/span> · <span class="showings__times"><a href="ics\/[0-9a-f]{16}\.ics" data-starts="2026-11-11T15:45:00\+01:00">15:45<span class="ds-u-visually-hidden">, ajouter la séance à l&#39;agenda<\/span><\/a>, <a href="ics\/[0-9a-f]{16}\.ics" data-starts="2026-11-11T18:00:00\+01:00">18:00/,
     );
   });
 
@@ -127,7 +127,8 @@ describe('renderPage', () => {
   it('is styled by the design system, next to it', () => {
     const html = renderPage([event('a')], SETTINGS, NOW);
     expect(html).toContain('<link rel="stylesheet" href="ds/styles.css">');
-    expect(html).toContain('<li class="ds-c-card event" data-category="brocante">');
+    expect(html).toContain('<li class="ds-c-card event" data-category="brocante" data-ends="2026-11-15T18:00:00+01:00">');
+    expect(html).toContain('<script src="page.js" defer></script>');
   });
 
   it('says when there is nothing', () => {
@@ -152,5 +153,18 @@ describe('page.css', () => {
     for (const category of Object.keys(CATEGORIES)) {
       expect(css).toContain(`:root:has(#filter-${category}:checked)`);
     }
+  });
+});
+
+describe('endsAt', () => {
+  it('is the end of an event, the end of its last day on whole days, or two hours after its start without an end', () => {
+    expect(endsAt(event('a'))).toBe('2026-11-15T18:00:00+01:00');
+    expect(endsAt(event('a', { start: '2026-11-15', end: undefined }))).toBe('2026-11-16T00:00:00+01:00');
+    expect(endsAt(event('a', { start: '2026-07-01', end: '2026-07-03' }))).toBe('2026-07-04T00:00:00+02:00');
+    expect(endsAt(event('a', { end: undefined }))).toBe('2026-11-15T09:00:00.000Z');
+  });
+
+  it('is the last showtime of a film on its day', () => {
+    expect(endsAt(event('film', { start: '2026-11-12T17:25:00+01:00', end: '2026-11-12T20:30:00+01:00', showings: [] }))).toBe('2026-11-12T20:30:00+01:00');
   });
 });

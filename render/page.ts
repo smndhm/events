@@ -2,7 +2,7 @@
 // its footer and its utilities. render/site.ts copies its stylesheet and fonts next to the page, as ds/.
 import { dayTitle, escape, listedOn, showingDay, time, when, where } from './format.ts';
 import { icsPath, screeningKey } from './ics.ts';
-import { isDayOnly, parisDay } from '../utils/dates.ts';
+import { addDays, isDayOnly, lastDay, parisDay, withParisOffset } from '../utils/dates.ts';
 import { CATEGORIES, type Category, type KnownEvent, type Source } from '../types.ts';
 
 export type PageSettings = {
@@ -19,10 +19,10 @@ const updatedFormat = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', time
 
 const isNew = (event: KnownEvent, now: Date, newDays: number): boolean => now.getTime() - new Date(event.firstSeen).getTime() < newDays * 86_400_000;
 
-const plural = (count: number, word: string): string => `${count} ${word}${count > 1 ? 's' : ''}`;
-
 // A link to the calendar file of an event or a showtime, its hidden text saying what it does, "20:30" alone not saying it
-const calendarLink = (key: string, text: string, hint: string): string => `<a href="${icsPath(key)}">${escape(text)}<span class="ds-u-visually-hidden">${escape(hint)}</span></a>`;
+// A showtime's says when it starts (`data-starts`), for page.js to take it out once started
+const calendarLink = (key: string, text: string, hint: string, starts?: string): string =>
+  `<a href="${icsPath(key)}"${starts ? ` data-starts="${starts}"` : ''}>${escape(text)}<span class="ds-u-visually-hidden">${escape(hint)}</span></a>`;
 
 // A film's cinemas on one day, the nearest first, a line each: its name, a link to its showtimes that day on Allociné,
 // its distance, and its times, each a link adding that showtime to the calendar
@@ -32,9 +32,9 @@ const renderShowings = (event: KnownEvent): string => `
                 .flatMap(showing =>
                   showing.days.map(
                     ({ day, url, times }) =>
-                      `<li><a href="${escape(url)}"><strong>${escape(showing.place)}</strong><span class="ds-u-visually-hidden">, séances du ${showingDay(day)} sur Allociné</span></a>${showing.distance === undefined ? '' : ` <span class="ds-u-text-muted">${showing.distance}&nbsp;km</span>`} · ${times
-                        .map(at => calendarLink(screeningKey(event, showing, at), time(at), ", ajouter la séance à l'agenda"))
-                        .join(', ')}</li>`,
+                      `<li class="showings__theater"><a href="${escape(url)}"><strong>${escape(showing.place)}</strong><span class="ds-u-visually-hidden">, séances du ${showingDay(day)} sur Allociné</span></a>${showing.distance === undefined ? '' : ` <span class="ds-u-text-muted">${showing.distance}&nbsp;km</span>`} · <span class="showings__times">${times
+                        .map(at => calendarLink(screeningKey(event, showing, at), time(at), ", ajouter la séance à l'agenda", at))
+                        .join(', ')}</span></li>`,
                   ),
                 )
                 .join('\n              ')}
@@ -53,12 +53,19 @@ const listings = (event: KnownEvent, today: string): [string, KnownEvent][] => {
   });
 };
 
+// When an event is over, for page.js to hide it: its end; the end of its last day, when it is on whole days; two hours
+// after its start, when it has no end. A film's listing, at its last showtime of the day.
+export const endsAt = (event: KnownEvent): string => {
+  if (event.showings) return event.end ?? event.start;
+  if (isDayOnly(event.start) || (event.end && isDayOnly(event.end))) return withParisOffset(`${addDays(lastDay(event), 1)}T00:00:00`);
+  if (event.end && event.end > event.start) return event.end;
+  return new Date(new Date(event.start).getTime() + 2 * 3_600_000).toISOString();
+};
+
 const renderEvent = (event: KnownEvent, now: Date, newDays: number): string => {
-  // A film's showtimes are in lists under it, its cinemas each with its distance: its line says how many cinemas show it
-  const meta = event.showings
-    ? [SHORT_LABELS[event.category], plural(event.showings.length, 'cinéma')].join(' · ')
-    : [SHORT_LABELS[event.category], when(event), where(event)].filter(Boolean).join(' · ');
-  return `<li class="ds-c-card event" data-category="${event.category}">
+  // A film's showtimes are in a list under it, its cinemas each with its distance, which page.js shortens as they start
+  const meta = event.showings ? SHORT_LABELS[event.category] : [SHORT_LABELS[event.category], when(event), where(event)].filter(Boolean).join(' · ');
+  return `<li class="ds-c-card event" data-category="${event.category}" data-ends="${endsAt(event)}">
             <p class="event__title"><a href="${escape(event.url)}">${escape(event.title)}</a>${isNew(event, now, newDays) ? ' <span class="ds-c-tag">Nouveau</span>' : ''}</p>
             <p class="ds-u-text-muted event__meta">${escape(meta)}</p>${
               event.showings
@@ -108,7 +115,7 @@ export const renderPage = (events: KnownEvent[], settings: PageSettings, now: Da
   const feeds = [{ label: 'Tout', path: feedPath() }, ...categories.map(category => ({ label: CATEGORIES[category], path: feedPath(category) }))];
 
   const sections = days.map(
-    ([day, dayEvents]) => `<section class="day" aria-labelledby="day-${day}">
+    ([day, dayEvents]) => `<section class="day" data-day="${day}" aria-labelledby="day-${day}">
         <h2 class="day__heading" id="day-${day}">${dayTitle(day, today)}</h2>
         <ul class="ds-l-stack" role="list">
           ${dayEvents
@@ -148,6 +155,8 @@ export const renderPage = (events: KnownEvent[], settings: PageSettings, now: Da
       </ul>
       <p class="ds-u-text-muted">Sources : ${settings.sources.map(source => `<a href="${escape(source.homepage)}">${escape(source.label)}</a>`).join(', ')}.</p>
     </footer>
+    <!-- What has passed, hidden as the page is read: without it, everything as built (render/page.js) -->
+    <script src="page.js" defer></script>
   </body>
 </html>
 `;
