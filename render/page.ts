@@ -17,10 +17,11 @@ const updatedFormat = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', time
 const isNew = (event: KnownEvent, now: Date, newDays: number): boolean => now.getTime() - new Date(event.firstSeen).getTime() < newDays * 86_400_000;
 
 const renderEvent = (event: KnownEvent, now: Date, newDays: number): string => {
-  const meta = [when(event), where(event)].filter(Boolean).join(' · ');
+  // Details, such as a film's showtimes, can run long: on a line of their own, under the place
+  const meta = [event.details ? '' : when(event), where(event)].filter(Boolean).join(' · ');
   return `<li data-category="${event.category}">
           <a href="${escape(event.url)}">${escape(event.title)}</a>${isNew(event, now, newDays) ? ' <strong class="new">Nouveau</strong>' : ''}
-          <p><span class="tag tag-${event.category}">${SHORT_LABELS[event.category]}</span> ${escape(meta)}</p>
+          <p><span class="tag tag-${event.category}">${SHORT_LABELS[event.category]}</span> ${escape(meta)}</p>${event.details ? `\n          <p class="details">${escape(event.details)}</p>` : ''}
         </li>`;
 };
 
@@ -111,6 +112,7 @@ export const renderPage = (events: KnownEvent[], settings: PageSettings, now: Da
       li { margin-bottom: 0.5rem; padding: 0.75rem 1rem; border: 1px solid var(--border); border-radius: 0.5rem; background: var(--surface); }
       li > a { color: var(--accent); font-weight: 600; }
       li p { margin: 0.25rem 0 0; color: var(--muted); font-size: 0.925rem; }
+      li .details { font-size: 0.85rem; }
       .new { color: var(--new); font-size: 0.85rem; }
       .tag { display: inline-block; margin-inline-end: 0.25rem; padding: 0 0.5rem; border-radius: 1rem; color: var(--text); font-size: 0.8rem; }
       ${(Object.keys(CATEGORIES) as Category[]).map(category => `.tag-${category} { background: var(--${category}); }`).join('\n      ')}

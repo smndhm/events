@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, lastDay, parisDay } from './dates.ts';
+import { addDays, lastDay, parisDay, withParisOffset } from './dates.ts';
 
 describe('parisDay', () => {
   it('tells the day in Paris, not in UTC', () => {
@@ -23,5 +23,12 @@ describe('lastDay', () => {
     expect(lastDay({ start: '2026-11-14T10:00:00+01:00', end: '2026-11-16T18:00:00+01:00' })).toBe('2026-11-16');
     expect(lastDay({ start: '2026-11-14' })).toBe('2026-11-14');
     expect(lastDay({ start: '2026-11-14', end: '2026-11-13' })).toBe('2026-11-14');
+  });
+});
+
+describe('withParisOffset', () => {
+  it('gives a Paris time the offset it has on that day', () => {
+    expect(withParisOffset('2026-11-12T20:30:00')).toBe('2026-11-12T20:30:00+01:00');
+    expect(withParisOffset('2026-07-01T20:30:00')).toBe('2026-07-01T20:30:00+02:00');
   });
 });

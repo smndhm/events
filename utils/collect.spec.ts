@@ -43,6 +43,7 @@ describe('collect', () => {
       ],
       [],
       SETTINGS,
+      {},
       NOW,
     );
     expect(events.map(({ id, distance }) => [id, distance])).toEqual([
@@ -54,7 +55,7 @@ describe('collect', () => {
 
   it('keeps the day an event was first seen, and dates the new ones now', async () => {
     const previous: KnownEvent[] = [{ ...event('seen'), firstSeen: '2026-11-01T05:00:00.000Z' }];
-    const { events } = await collect([source([event('seen'), event('fresh')])], previous, SETTINGS, NOW);
+    const { events } = await collect([source([event('seen'), event('fresh')])], previous, SETTINGS, {}, NOW);
     expect(Object.fromEntries(events.map(({ id, firstSeen }) => [id, firstSeen]))).toEqual({ seen: '2026-11-01T05:00:00.000Z', fresh: NOW.toISOString() });
   });
 
@@ -64,7 +65,7 @@ describe('collect', () => {
       { ...event('gone'), firstSeen: '2026-11-01T05:00:00.000Z' },
     ];
     const error = new Error('down');
-    const { events, reports } = await collect([source(error, 'broken'), source([event('fresh')])], previous, SETTINGS, NOW);
+    const { events, reports } = await collect([source(error, 'broken'), source([event('fresh')])], previous, SETTINGS, {}, NOW);
     expect(events.map(({ id }) => id).toSorted()).toEqual(['fresh', 'kept']);
     expect(reports).toEqual([
       { name: 'broken', events: 1, error },

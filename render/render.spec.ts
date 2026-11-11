@@ -32,6 +32,7 @@ describe('format', () => {
     expect(when(event('a'))).toBe('08:00 – 18:00');
     expect(when(event('a', { end: '2026-11-16T18:00:00+01:00' }))).toBe("jusqu'au lun. 16 nov.");
     expect(when(event('a', { start: '2026-11-15', end: undefined }))).toBe('');
+    expect(when(event('a', { details: 'jeu. 12 : 20:30' }))).toBe('jeu. 12 : 20:30');
   });
 });
 
@@ -56,6 +57,12 @@ describe('renderPage', () => {
     const html = renderPage([event('a'), event('b', { category: 'cinema' })], SETTINGS, NOW);
     expect(html).toContain('id="filter-cinema"');
     expect(html).toContain('href="rss/cinema.xml"');
+  });
+
+  it('puts the details on a line of their own, under the place', () => {
+    const html = renderPage([event('film', { category: 'cinema', place: 'Ti Hanok, Auray', details: 'jeu. 12 : 20:30' })], SETTINGS, NOW);
+    expect(html).toContain('Ciné VO</span> Ti Hanok, Auray, 12\u00a0km</p>');
+    expect(html).toContain('<p class="details">jeu. 12 : 20:30</p>');
   });
 
   it('says when there is nothing', () => {

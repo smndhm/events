@@ -54,7 +54,7 @@ jobs:
         if: ${{ !cancelled() && hashFiles('_site/index.html') != '' }}
         working-directory: .state
         run: |
-          git add events.json
+          git add --all
           if git diff --quiet --cached; then
             echo 'Nothing changed.'
             exit 0

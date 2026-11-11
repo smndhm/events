@@ -25,3 +25,12 @@ export const lastDay = (event: { start: string; end?: string }): string => {
   const end = event.end ? parisDay(event.end) : start;
   return end < start ? start : end;
 };
+
+const offsetFormat = new Intl.DateTimeFormat('en-US', { timeZone: TIME_ZONE, timeZoneName: 'longOffset' });
+
+// A Paris wall clock time without an offset, as some sites give it (2026-11-12T20:30:00), with the offset it has on
+// that day: +01:00 in winter, +02:00 in summer
+export const withParisOffset = (local: string): string => {
+  const zone = offsetFormat.formatToParts(new Date(`${local}Z`)).find(part => part.type === 'timeZoneName')?.value ?? 'GMT';
+  return `${local}${zone === 'GMT' ? '+00:00' : zone.slice(3)}`;
+};

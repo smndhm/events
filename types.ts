@@ -2,7 +2,7 @@
 export const CATEGORIES = {
   brocante: 'Brocantes et vide-greniers',
   cinema: 'Films en VO',
-  sortie: 'Sorties',
+  sortie: 'Concerts, spectacles et sorties',
 } as const;
 
 export type Category = keyof typeof CATEGORIES;
@@ -25,6 +25,8 @@ export type Event = {
   lon?: number;
   url: string;
   image?: string;
+  // Shown in place of the hours, such as a film's showtimes on each day
+  details?: string;
 };
 
 // An event as the page and the feeds show it: with how far it is, and the day it was first seen, which the state
@@ -42,5 +44,18 @@ export type Source = {
   // Credits it at the foot of the page
   label: string;
   homepage: string;
-  fetchEvents: () => Promise<Event[]>;
+  fetchEvents: (context: SourceContext) => Promise<Event[]>;
+};
+
+export type SourceContext = {
+  now: Date;
+  // The pages this source read on earlier runs, kept on the state branch (utils/cache.ts)
+  cache: PageCache;
+};
+
+// What a source made of a page, kept from one run to the next: a site with hundreds of pages is then only read for the
+// pages that changed. `version` tells whether the page changed, such as the date the site's sitemap gives it.
+export type PageCache = {
+  get: (url: string, version: string) => Event[] | undefined;
+  set: (url: string, version: string, events: Event[]) => void;
 };

@@ -6,6 +6,7 @@ import { dirname, join } from 'node:path';
 import { home, horizonDays, newDays, radiusKm, siteUrl, sources } from './config.ts';
 import { feedPath, renderPage } from './render/page.ts';
 import { renderRss } from './render/rss.ts';
+import { readCache, writeCache } from './utils/cache.ts';
 import { collect, type SourceReport } from './utils/collect.ts';
 import { readState, writeState } from './utils/state.ts';
 import { CATEGORIES, type Category, type KnownEvent } from './types.ts';
@@ -28,7 +29,8 @@ const summary = (reports: SourceReport[], events: KnownEvent[], now: Date): stri
 };
 
 export default async function build(now: Date = new Date()): Promise<SourceReport[]> {
-  const { events, reports } = await collect(sources, readState(), { home, radiusKm, horizonDays }, now);
+  const cache = readCache();
+  const { events, reports } = await collect(sources, readState(), { home, radiusKm, horizonDays }, cache, now);
 
   write('index.html', renderPage(events, { home, radiusKm, horizonDays, newDays, sources }, now));
   const title = `Autour de ${home.name}`;
@@ -51,6 +53,7 @@ export default async function build(now: Date = new Date()): Promise<SourceRepor
     );
   }
   writeState(events);
+  writeCache(cache);
 
   reports.forEach(({ name, events: count, error }) =>
     error ? console.error(`::error::${name} failed, its ${count} events of the last run kept:`, error) : console.log(`${name}: ${count} events`),

@@ -19,8 +19,10 @@ export const dayTitle = (day: string, today: string): string => {
 
 export const shortDay = (day: string): string => shortDayFormat.format(atNoon(day));
 
-// "10:00 – 18:00", "jusqu'au dim. 16 nov.", or nothing for a bare day
+// The details a source gave, such as a film's showtimes; else "10:00 – 18:00", "jusqu'au dim. 16 nov.", or nothing for a
+// bare day
 export const when = (event: KnownEvent): string => {
+  if (event.details) return event.details;
   const last = lastDay(event);
   if (last !== parisDay(event.start)) return `jusqu'au ${shortDay(last)}`;
   if (isDayOnly(event.start)) return '';

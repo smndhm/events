@@ -1,5 +1,6 @@
 import { addDays, lastDay, parisDay } from './dates.ts';
 import { distanceKm } from './geo.ts';
+import { sourceCache, type CacheStore } from './cache.ts';
 import type { Event, KnownEvent, Source } from '../types.ts';
 
 export type Settings = {
@@ -15,11 +16,13 @@ const withDistance = (event: Event, home: Settings['home']): Event & { distance?
 
 // Reads every source, one after the other, and returns what to publish: the events not over yet, starting within the
 // horizon and within the radius, each with the day it was first seen. A source that fails keeps its events of the last
-// run, and its error is in the report; the others are not held back by it.
+// run, and its error is in the report; the others are not held back by it. `cache` is updated with the pages the
+// sources read.
 export const collect = async (
   sources: Source[],
   previous: KnownEvent[],
   settings: Settings,
+  cache: CacheStore = {},
   now: Date = new Date(),
 ): Promise<{ events: KnownEvent[]; reports: SourceReport[] }> => {
   const today = parisDay(now);
@@ -29,8 +32,10 @@ export const collect = async (
   const reports: SourceReport[] = [];
   const events: Event[] = [];
   for (const source of sources) {
+    const pages = sourceCache(cache, source.name);
     try {
-      const fetched = await source.fetchEvents();
+      const fetched = await source.fetchEvents({ now, cache: pages });
+      pages.commit();
       events.push(...fetched);
       reports.push({ name: source.name, events: fetched.length });
     } catch (error) {

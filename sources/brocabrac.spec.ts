@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import brocabrac, { joinDays, parsePage } from './brocabrac.ts';
+import { context } from '../utils/testing.ts';
 import type { Event } from '../types.ts';
 
 // The Morbihan's first page and its last, as brocabrac.fr sent them on 11 November 2026
@@ -81,13 +82,13 @@ const answer = (status: number, body = ''): Response => new Response(body, { sta
 describe('brocabrac', () => {
   it('reads the pages until one redirects', async () => {
     const fetch = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(answer(200, FIRST_PAGE)).mockResolvedValueOnce(answer(200, LAST_PAGE)).mockResolvedValueOnce(answer(302));
-    const events = await brocabrac({ department: '56' }).fetchEvents();
+    const events = await brocabrac({ department: '56' }).fetchEvents(context());
     expect(fetch.mock.calls.map(([url]) => url)).toEqual(['https://brocabrac.fr/56/', 'https://brocabrac.fr/56/?p=2', 'https://brocabrac.fr/56/?p=3']);
     expect(events.length).toBeGreaterThan(30);
   });
 
   it('fails when a page fails', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(answer(503));
-    await expect(brocabrac({ department: '56' }).fetchEvents()).rejects.toThrow('https://brocabrac.fr/56/ answered 503');
+    await expect(brocabrac({ department: '56' }).fetchEvents(context())).rejects.toThrow('https://brocabrac.fr/56/ answered 503');
   });
 });
