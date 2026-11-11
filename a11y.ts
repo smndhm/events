@@ -1,6 +1,6 @@
-// pnpm test:a11y: writes the site, with the design system, from the Brocabrac page of __fixtures__, plus a film so it has two categories and its
-// filter, then runs axe on it (@dume/dev-config/a11y) in light and dark, checks the filter hides what it leaves out, and
-// that, read later, what has passed is hidden.
+// pnpm test:a11y: writes the site, with the design system, from the Brocabrac page of __fixtures__, plus a film so it has two categories in its
+// days' categories, then runs axe on it (@dume/dev-config/a11y) in light and dark, its categories open, checks their
+// counts, and that, read later, what has passed is hidden and the counts follow.
 // Needs Playwright's Chromium (pnpm exec playwright install chromium), or another one at CHROMIUM_PATH.
 import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -45,14 +45,20 @@ const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PAT
 const failures: string[] = [];
 try {
   for (const colorScheme of ['light', 'dark'] as const) {
+    // Read when it was built, every category open, for axe to see what they fold
     const page = await browser.newPage({ colorScheme });
+    await page.clock.setFixedTime(NOW);
     await page.goto(url);
+    await page.evaluate(() => document.querySelectorAll('details').forEach(details => details.setAttribute('open', '')));
     failures.push(...(await audit(page)).map(violation => `${colorScheme}: ${violation}`));
 
-    await page.getByLabel('Films en VO ou en français').check();
-    const visible = await page.locator('.event:visible').count();
+    const counts = await page.evaluate(() =>
+      [...document.querySelectorAll('.day__category')].map(category => [category.querySelector('.day__count')?.textContent, String(category.querySelectorAll('.event').length)]),
+    );
+    if (counts.some(([shown, inside]) => shown !== inside)) failures.push(`${colorScheme}: a category counts other than its events`);
     // The film, under each of its two days
-    if (visible !== 2) failures.push(`${colorScheme}: the film filter shows ${visible} events, not the film on its 2 days`);
+    const films = await page.locator('.day__category[data-category="cinema"]').count();
+    if (films !== 2) failures.push(`${colorScheme}: the film is in ${films} days, not its 2`);
     await page.close();
   }
 
@@ -65,9 +71,14 @@ try {
     hidden: document.querySelectorAll('.event[hidden]').length,
     ends: [...document.querySelectorAll('.event:not([hidden])')].map(event => event.getAttribute('data-ends') ?? ''),
     starts: [...document.querySelectorAll('.showings__theater:not([hidden]) [data-starts]')].map(link => link.getAttribute('data-starts') ?? ''),
+    counts: [...document.querySelectorAll('.day__category:not([hidden])')].map(category => [
+      category.querySelector('.day__count')?.textContent,
+      String(category.querySelectorAll('.event:not([hidden])').length),
+    ]),
     headings: Object.fromEntries([...document.querySelectorAll('.day:not([hidden])')].map(day => [day.getAttribute('data-day'), day.querySelector('h2')?.textContent])),
   }));
   if (read.hidden === 0) failures.push('read later, no event is hidden');
+  if (read.counts.some(([shown, left]) => shown !== left || left === '0')) failures.push('read later, a category counts other than its events left');
   if (read.ends.some(ends => new Date(ends) <= now)) failures.push('read later, an event over is still shown');
   if (read.starts.some(starts => new Date(starts) <= now)) failures.push('read later, a showtime started is still shown');
   if (!read.starts.includes('2026-11-14T20:30:00+01:00')) failures.push("read later, the evening's showtime is gone");
@@ -79,5 +90,5 @@ try {
 }
 
 failures.forEach(failure => console.error(failure));
-console.log(failures.length ? `${failures.length} problems` : 'No accessibility violation, and the filter works');
+console.log(failures.length ? `${failures.length} problems` : 'No accessibility violation, and the counts follow what has passed');
 process.exitCode = failures.length ? 1 : 0;

@@ -2,7 +2,7 @@
 
 What is coming up around home: flea markets, garage sales, original version films, special events. Rebuilt every morning as a web page and RSS feeds, so the weekend is planned before it starts rather than searched for on the day.
 
-- The page: <https://smndhm.github.io/events/>, by day, with a filter by category.
+- The page: <https://smndhm.github.io/events/>, by day, each day's categories folded with their number of events. What has passed by the time it is read is hidden ([`render/page.js`](render/page.js)).
 - The feeds: [`rss.xml`](https://smndhm.github.io/events/rss.xml) for everything, and one per category in [`rss/`](https://smndhm.github.io/events/rss/brocante.xml). An event is an item once, the day it appears, not again on every run.
 
 ## How it works
@@ -11,7 +11,7 @@ The [Site](.github/workflows/site.yml) workflow runs every morning, and on every
 
 1. Each source of [`config.ts`](config.ts) reads its site and returns its events, all in the same shape (`Event` in [`types.ts`](types.ts)).
 2. [`utils/collect.ts`](utils/collect.ts) keeps the events not over yet, starting within `horizonDays` and within `radiusKm` of `home`, as the crow flies.
-3. The page and the feeds are written in `_site/` ([`render/`](render)) and deployed to GitHub Pages. The page is built with my design system, [`@dume/ds`](https://github.com/smndhm/blu/tree/main/packages/ds): its stylesheet and fonts are copied next to it, as `ds/`, and the page only adds what is its own, in [`render/page.css`](render/page.css): its filter, its days and its events, in BEM, checked by Stylelint with @dume/dev-config's configuration.
+3. The page and the feeds are written in `_site/` ([`render/`](render)) and deployed to GitHub Pages. The page is built with my design system, [`@dume/ds`](https://github.com/smndhm/blu/tree/main/packages/ds): its stylesheet and fonts are copied next to it, as `ds/`, and the page only adds what is its own, in [`render/page.css`](render/page.css): its days, their categories and its events, in BEM, checked by Stylelint with @dume/dev-config's configuration.
 4. What was published goes to the `events-state` branch, with the day each event was first seen: it is how the feeds and the "Nouveau" mark know what is new. Next to it, the page cache ([`utils/cache.ts`](utils/cache.ts)): what a source made of each page it read, so a site of hundreds of pages is only read for those that changed.
 
 A source that fails does not take the others down: its events of the last run are kept, the site still goes out, and the run is red so it is seen. Its summary, at the top of the run's page, says what each source gave.
@@ -50,7 +50,7 @@ pnpm test        # on the pages of __fixtures__
 pnpm typecheck
 pnpm lint
 pnpm exec playwright install chromium
-pnpm test:a11y   # axe on the page, in light and dark, and its filter
+pnpm test:a11y   # axe on the page, in light and dark, its counts, and the page read later
 ```
 
 Node runs the TypeScript files as they are, without a build ([`tsconfig.json`](tsconfig.json) keeps to the syntax it can strip).
