@@ -88,8 +88,7 @@ try {
   }));
   if (read.hidden === 0) failures.push('read later, no event is hidden');
   if (read.counts.some(([shown, left]) => shown !== left || left === '0')) failures.push('read later, a category counts other than its events left');
-  // Today's open, and the build's day, "En cours", whose events are still on today; the days to come folded
-  if (read.open.some(([day, open]) => open !== String(day) <= '2026-11-14')) failures.push(`read later, the categories open are not today's: ${JSON.stringify(read.open)}`);
+  if (read.open.some(([, open]) => !open)) failures.push(`read later, a category is folded: ${JSON.stringify(read.open)}`);
   if (read.totals.some(([shown, left]) => shown !== left || left === '0')) failures.push('read later, a day counts other than its events left');
   if (read.ends.some(ends => new Date(ends) <= now)) failures.push('read later, an event over is still shown');
   if (read.starts.some(starts => new Date(starts) <= now)) failures.push('read later, a showtime started is still shown');
