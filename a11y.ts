@@ -1,6 +1,6 @@
 // pnpm test:a11y: writes the site, with the design system, from the Brocabrac page of __fixtures__, plus a film so it has two categories in its
 // days' categories, then runs axe on it (@dume/dev-config/a11y) in light and dark, its categories open, checks their
-// counts, and that, read later, what has passed is hidden and the counts follow.
+// counts, that, read later, what has passed is hidden and the counts follow, and that only the new ones can be seen.
 // Needs Playwright's Chromium (pnpm exec playwright install chromium), or another one at CHROMIUM_PATH.
 import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -96,6 +96,32 @@ try {
   if (read.headings['2026-11-14'] !== "Aujourd'hui" || read.headings['2026-11-15'] !== 'Demain')
     failures.push(`read later, the days are misnamed: ${JSON.stringify(read.headings)}`);
   await page.close();
+
+  // "Seulement les nouveautés": on the 12th, the events first seen on the build's day are still new; on the 14th, two days
+  // on, none is, and their marks are off
+  const news = await browser.newPage();
+  await news.clock.setFixedTime(new Date('2026-11-12T10:00:00+01:00'));
+  await news.goto(url);
+  await news.getByLabel(/Seulement les nouveautés/).check();
+  const onlyNew = await news.evaluate(() => ({
+    shown: [...document.querySelectorAll('.event')].filter(event => event.checkVisibility()).map(event => event.hasAttribute('data-new')),
+    counts: [...document.querySelectorAll('.day__category:not([hidden])')].map(category => [
+      category.querySelector('.day__count')?.textContent,
+      String([...category.querySelectorAll('.event')].filter(event => event.checkVisibility()).length),
+    ]),
+  }));
+  if (onlyNew.shown.length === 0 || onlyNew.shown.includes(false)) failures.push('only the new: other events than the new are shown, or none');
+  if (onlyNew.counts.some(([shown, left]) => shown !== left)) failures.push('only the new: a category counts other than its new events');
+  await news.clock.setFixedTime(new Date('2026-11-14T10:00:00+01:00'));
+  await news.reload();
+  await news.getByLabel(/Seulement les nouveautés/).check();
+  const twoDaysOn = await news.evaluate(() => ({
+    marks: [...document.querySelectorAll('.event__new')].filter(mark => mark.checkVisibility()).length,
+    count: document.querySelector('.news__count')?.textContent,
+    empty: document.querySelector('.news__empty')?.checkVisibility(),
+  }));
+  if (twoDaysOn.marks > 0 || twoDaysOn.count !== '0' || !twoDaysOn.empty) failures.push(`two days on, events are still new: ${JSON.stringify(twoDaysOn)}`);
+  await news.close();
 } finally {
   await browser.close();
 }

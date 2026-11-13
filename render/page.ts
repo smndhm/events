@@ -1,5 +1,6 @@
 // The page, built with the design system, @dume/ds: its layout, its card for each event, its stack for each day's list,
 // its footer and its utilities. render/site.ts copies its stylesheet and fonts next to the page, as ds/.
+import { createHash } from 'node:crypto';
 import { dayTitle, escape, listedOn, showingDay, time, when, where } from './format.ts';
 import { icsPath, screeningKey } from './ics.ts';
 import { addDays, isDayOnly, lastDay, parisDay, withParisOffset } from '../utils/dates.ts';
@@ -21,6 +22,9 @@ export type PageSettings = {
 };
 
 const updatedFormat = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeStyle: 'short', timeZone: 'Europe/Paris' });
+
+// A short key of its own for each event
+const eventKey = (event: KnownEvent): string => createHash('sha1').update(event.id).digest('hex').slice(0, 12);
 
 const isNew = (event: KnownEvent, now: Date, newDays: number): boolean => now.getTime() - new Date(event.firstSeen).getTime() < newDays * 86_400_000;
 
@@ -83,8 +87,11 @@ export const endsOn = (event: KnownEvent, day: string): string => {
 const renderEvent = (event: KnownEvent, day: string, now: Date, newDays: number): string => {
   // Its category is the folded list it is in: its line says when and where; a film's showtimes say both
   const meta = event.showings ? '' : [when(event), where(event)].filter(Boolean).join(' · ');
-  return `<li class="ds-c-card event" data-category="${event.category}" data-ends="${endsOn(event, day)}">
-            <p class="event__title"><a href="${escape(event.url)}">${escape(event.title)}</a>${isNew(event, now, newDays) ? ' <span class="ds-c-tag">Nouveau</span>' : ''}</p>
+  // When it was first seen (`data-first-seen`), for page.js to take its mark off once it is no longer new, and who it is
+  // (`data-event`), to count it once among the new ones however many days it is under
+  const fresh = isNew(event, now, newDays);
+  return `<li class="ds-c-card event" data-category="${event.category}" data-ends="${endsOn(event, day)}" data-first-seen="${event.firstSeen}" data-event="${eventKey(event)}"${fresh ? ' data-new' : ''}>
+            <p class="event__title"><a href="${escape(event.url)}">${escape(event.title)}</a>${fresh ? ' <span class="ds-c-tag event__new">Nouveau</span>' : ''}</p>
             ${meta ? `<p class="ds-u-text-muted event__meta">${escape(meta)}</p>` : ''}${
               event.showings
                 ? renderShowings(event)
@@ -118,6 +125,14 @@ const renderCategory = (
               .join('\n            ')}
           </ul>
         </details>`;
+
+// A checkbox to see only the events new for `newDays` days: CSS hides the others (page.css), page.js counts again what is
+// left and says when nothing is
+const renderNews = (events: KnownEvent[], newDays: number, now: Date): string => `<div class="ds-c-checkbox">
+        <input class="ds-c-checkbox__control" type="checkbox" id="only-new">
+        <label class="ds-c-checkbox__label" for="only-new">Seulement les nouveautés <small class="ds-u-text-muted">(<span class="news__count">${events.filter(event => isNew(event, now, newDays)).length}</span>)</small></label>
+      </div>
+      <p class="news__empty" hidden>Rien de nouveau depuis ${newDays}&nbsp;jours.</p>`;
 
 export const feedPath = (category?: Category): string => (category ? `rss/${category}.xml` : 'rss.xml');
 
@@ -164,13 +179,13 @@ export const renderPage = (events: KnownEvent[], settings: PageSettings, now: Da
     <link rel="stylesheet" href="${assets.css}">
   </head>
   <body class="ds-l-page ds-l-page--full-height">
-    <main id="main" class="ds-l-page__main">
+    <main id="main" class="ds-l-page__main" data-new-days="${settings.newDays}">
       <hgroup>
         <h1>${escape(title)}</h1>
         <p class="ds-u-text-muted">Ce qui arrive dans les ${settings.horizonDays} prochains jours, à moins de ${settings.radiusKm}&nbsp;km. Mis à jour le ${updatedFormat.format(now)}.</p>
         <p class="ds-u-text-muted">Un événement, ou l'horaire d'une séance, s'ajoute à votre agenda d'un clic.</p>
       </hgroup>
-      ${events.length === 0 ? '<p>Rien de prévu pour le moment.</p>' : sections.join('\n      ')}
+      ${events.length === 0 ? '<p>Rien de prévu pour le moment.</p>' : [renderNews(events, settings.newDays, now), ...sections].join('\n      ')}
     </main>
     <footer class="ds-c-footer">
       <ul class="ds-l-cluster">

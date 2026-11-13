@@ -63,7 +63,9 @@ describe('renderPage', () => {
 
   it('marks the events first seen recently as new, with a tag', () => {
     const html = renderPage([event('old'), event('fresh', { firstSeen: '2026-11-10T09:00:00.000Z' })], SETTINGS, NOW);
-    expect(html.match(/<span class="ds-c-tag">Nouveau<\/span>/g)).toHaveLength(1);
+    expect(html.match(/<span class="ds-c-tag event__new">Nouveau<\/span>/g)).toHaveLength(1);
+    expect(html.match(/ data-new>/g)).toHaveLength(1);
+    expect(html).toContain('data-first-seen="2026-11-10T09:00:00.000Z"');
   });
 
   it('escapes what the sites write', () => {
@@ -86,6 +88,14 @@ describe('renderPage', () => {
   it('opens every category, to be folded when it is not of interest', () => {
     const html = renderPage([event('today', { start: '2026-11-11T20:00:00+01:00', end: '2026-11-11T22:00:00+01:00' }), event('sunday', { category: 'cinema' })], SETTINGS, NOW);
     expect(html.match(/<details class="day__category" data-category="[a-z]+" open>/g)).toHaveLength(2);
+  });
+
+  it('offers to see only the new events, counting them', () => {
+    const html = renderPage([event('old'), event('fresh', { firstSeen: '2026-11-10T09:00:00.000Z' })], SETTINGS, NOW);
+    expect(html).toContain('<input class="ds-c-checkbox__control" type="checkbox" id="only-new">');
+    expect(html).toContain('Seulement les nouveautés <small class="ds-u-text-muted">(<span class="news__count">1</span>)</small>');
+    expect(html).toContain('<p class="news__empty" hidden>Rien de nouveau depuis 2&nbsp;jours.</p>');
+    expect(renderPage([], SETTINGS, NOW)).not.toContain('only-new');
   });
 
   it('lists an event on several days under each of them, up to the horizon, ending at midnight but on its last', () => {
@@ -146,7 +156,10 @@ describe('renderPage', () => {
   it('is styled by the design system, next to it', () => {
     const html = renderPage([event('a')], SETTINGS, NOW);
     expect(html).toContain('<link rel="stylesheet" href="ds/styles.css">');
-    expect(html).toContain('<li class="ds-c-card event" data-category="brocante" data-ends="2026-11-15T18:00:00+01:00">');
+    expect(html).toMatch(
+      /<li class="ds-c-card event" data-category="brocante" data-ends="2026-11-15T18:00:00\+01:00" data-first-seen="2026-11-01T05:00:00\.000Z" data-event="[0-9a-f]{12}">/,
+    );
+    expect(html).toContain('<main id="main" class="ds-l-page__main" data-new-days="2">');
     expect(html).toContain('<p class="ds-u-text-muted event__meta">08:00 – 18:00 · Hennebont, 12\u00a0km</p>');
     expect(html).toContain('<script src="page.js" defer></script>');
   });
