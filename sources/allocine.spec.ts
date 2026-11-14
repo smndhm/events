@@ -36,6 +36,12 @@ describe('parseShowtimes', () => {
     expect(screenings.filter(({ title }) => title === 'Godzilla Minus Zero')).toHaveLength(1);
   });
 
+  it('reads no showtimes on a day the cinema has published none for yet', () => {
+    // Cinéville Lorient's 20 November 2026, as Allociné sent it on the 14th
+    const none = readFileSync(new URL('../__fixtures__/allocine-P0766-2026-11-20-none.json', import.meta.url), 'utf8');
+    expect(parseShowtimes(JSON.parse(none))).toEqual([]);
+  });
+
   it('fails on an error', () => {
     expect(() => parseShowtimes({ error: true, message: 'nope', results: [] })).toThrow('nope');
   });

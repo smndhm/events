@@ -9,6 +9,9 @@ import type { Event, Showing, Source } from '../types.ts';
 
 const NAME = 'allocine';
 
+// Allociné's answer for a day without showtimes, its next day in `nextDate`
+const NO_SHOWTIMES = 'next.showtime.on';
+
 export type Theater = {
   // Allociné's code, in the address of its page: allocine.fr/seance/salle_gen_csalle=P9556.html
   id: string;
@@ -43,6 +46,8 @@ export const parseRuntime = (runtime: string | null | undefined): number | undef
 
 // The showtimes of an answer in the film's own language
 export const parseShowtimes = (answer: Answer): Screening[] => {
+  // A day the cinema has published no showtimes for yet: an "error" saying when its next ones are, not a failure
+  if (answer.error && answer.message === NO_SHOWTIMES) return [];
   if (answer.error) throw new Error(`Allociné answered an error: ${answer.message ?? 'no message'}`);
   return answer.results.flatMap(({ movie, showtimes }) =>
     Object.values(showtimes)
