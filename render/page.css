@@ -3,6 +3,13 @@
  * system's namespace (ds-), which is its own. Outside the design system's layers, so it wins without a specificity fight.
  */
 
+/* The page's color, an ocean teal, for the coast of the Morbihan: the design system's states and surfaces come from it.
+   Its contrasts pass WCAG AA in both themes: 6.5:1 on the background in light, 9:1 in dark; 6.8:1 and 9:1 for the text on
+   it, such as a tag's */
+:root {
+  --ds-b-color-primary: light-dark(#00666b, #6fd3cf);
+}
+
 /* "Seulement les nouveautés" checked hides the events that are not new, and the categories and days left without any:
    without a script, as the page was built; with page.js, as it is read */
 :root:has(#only-new:checked) :is(.event:not([data-new]), .day__category:not(:has(.event[data-new]:not([hidden]))), .day:not(:has(.event[data-new]:not([hidden])))) {
