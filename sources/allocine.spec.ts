@@ -24,6 +24,7 @@ describe('parseShowtimes', () => {
       startsAt: expect.stringMatching(/^2026-11-12T\d{2}:\d{2}:00\+01:00$/),
       version: 'ORIGINAL',
       minutes: expect.any(Number),
+      synopsis: expect.stringContaining('Godzilla'),
     });
     expect(screenings).toContainEqual(expect.objectContaining({ title: 'Gilles United', version: 'LOCAL', minutes: 93 }));
     expect(screenings.every(({ startsAt }) => startsAt.endsWith('+01:00'))).toBe(true);

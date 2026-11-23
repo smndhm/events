@@ -3,7 +3,7 @@
 // are read: the site also lists house clearances, toy fairs, Christmas markets...
 import { addDays, isDayOnly, lastDay, parisDay } from '../utils/dates.ts';
 import { fetchPage } from '../utils/http.ts';
-import { decodeEntities, readJsonLdEvents, type JsonLdEvent } from '../utils/json-ld.ts';
+import { cleanDescription, decodeEntities, readJsonLdEvents, type JsonLdEvent } from '../utils/json-ld.ts';
 import type { Event, Source } from '../types.ts';
 
 const NAME = 'brocabrac';
@@ -42,6 +42,7 @@ const toOccurrence = (item: JsonLdEvent): Event[] => {
       lon: toNumber(location?.geo?.longitude),
       url,
       image: toImage(item.image),
+      description: cleanDescription(item.description),
     },
   ];
 };

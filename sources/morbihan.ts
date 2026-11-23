@@ -4,7 +4,7 @@
 // sitemap is read on each run, and only the pages new or changed since the last one (the cache).
 import { addDays, parisDay } from '../utils/dates.ts';
 import { fetchPage } from '../utils/http.ts';
-import { decodeEntities, readJsonLdEvents, type JsonLdEvent } from '../utils/json-ld.ts';
+import { cleanDescription, decodeEntities, readJsonLdEvents, type JsonLdEvent } from '../utils/json-ld.ts';
 import type { Event, Source } from '../types.ts';
 
 const NAME = 'morbihan';
@@ -13,6 +13,10 @@ const AGENDA_PAGE = /^https:\/\/morbihan\.com\/a-voir-a-faire\/agenda\/tout-lage
 
 // Weekly markets and exhibitions run for months, and would be on every day of the page: what lasts longer is left out
 const MAX_DAYS = 14;
+
+// What a page's events are made of: a page read with another version of this parser is read again, its date in the
+// sitemap unchanged. 2: the description.
+const PARSER = 2;
 
 // Pages read at once
 const CONCURRENCY = 4;
@@ -51,6 +55,7 @@ const toEvent = (item: JsonLdEvent, url: string): Event[] => {
       lon: toNumber(location?.geo?.longitude),
       url,
       image,
+      description: cleanDescription(item.description),
     },
   ];
 };
@@ -77,7 +82,7 @@ export default function morbihan(): Source {
 
       const events: Event[] = [];
       const toRead = pages.filter(({ url, lastmod }) => {
-        const cached = cache.get(url, lastmod);
+        const cached = cache.get(url, `${lastmod}#${PARSER}`);
         if (cached) events.push(...cached);
         return !cached;
       });
@@ -86,7 +91,7 @@ export default function morbihan(): Source {
       await inBatches(toRead, async ({ url, lastmod }) => {
         try {
           const read = parseEventPage((await fetchPage(url)).html, url);
-          cache.set(url, lastmod, read);
+          cache.set(url, `${lastmod}#${PARSER}`, read);
           events.push(...read);
         } catch (error) {
           failures.push(error);

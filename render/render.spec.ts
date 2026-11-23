@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { dayTitle, when } from './format.ts';
 import { endsAt, endsOn, renderPage } from './page.ts';
-import { renderRss } from './rss.ts';
+import { itemHtml, renderRss } from './rss.ts';
 import type { KnownEvent, Showing } from '../types.ts';
 
 const NOW = new Date('2026-11-11T09:00:00Z');
@@ -198,5 +198,30 @@ describe('endsOn', () => {
     const festival = event('a', { start: '2026-11-11T10:00:00+01:00', end: '2026-11-13T18:00:00+01:00' });
     expect(endsOn(festival, '2026-11-11')).toBe('2026-11-12T00:00:00+01:00');
     expect(endsOn(festival, '2026-11-13')).toBe('2026-11-13T18:00:00+01:00');
+  });
+});
+
+describe('itemHtml', () => {
+  const SITE = 'https://example.org/events/';
+
+  it('says when and where, what the site says, its paragraphs apart, and links to the calendar', () => {
+    const html = itemHtml(event('fair', { address: '2 rue du Port', description: 'Troc & puces.\n\nBuvette.\nGalettes.' }), SITE);
+    expect(html).toMatch(
+      /^<p>08:00 – 18:00 · 2 rue du Port · Hennebont<\/p><p>Troc &#38; puces\.<\/p><p>Buvette\.<br>Galettes\.<\/p><p><a href="https:\/\/example\.org\/events\/ics\/[0-9a-f]{16}\.ics">Ajouter à l'agenda<\/a><\/p>$/,
+    );
+  });
+
+  it("gives a film's showtimes in each cinema, each time adding it to the calendar", () => {
+    const html = itemHtml(event('film', { category: 'cinema', showings: SHOWINGS, description: 'Un synopsis.' }), SITE);
+    expect(html).toMatch(
+      /^<ul><li>Ti Hanok \(Auray\), 14\u00a0km : mer\.\u00a011 <a href="https:\/\/example\.org\/events\/ics\/[0-9a-f]{16}\.ics">15:45<\/a>, <a [^>]+>18:00<\/a> · jeu\.\u00a012 <a [^>]+>17:25<\/a><\/li><li>CGR Lanester/,
+    );
+    expect(html).toContain('<p>Un synopsis.</p>');
+    expect(html).not.toContain('Ajouter à l');
+  });
+
+  it('goes in the feed escaped', () => {
+    const xml = renderRss({ title: 'T', description: 'D', link: 'https://example.org/', self: 'https://example.org/rss.xml' }, [event('a', { description: 'Hello' })], NOW);
+    expect(xml).toContain('<description>&#60;p&#62;08:00 – 18:00 · Hennebont&#60;/p&#62;&#60;p&#62;Hello&#60;/p&#62;');
   });
 });

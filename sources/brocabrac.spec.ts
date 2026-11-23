@@ -40,6 +40,7 @@ describe('parsePage', () => {
       lon: expect.closeTo(-3.19, 1),
       url: 'https://brocabrac.fr/56/branderion/1410327-troc-et-puces',
       image: expect.stringMatching(/^https:\/\/brocabrac\.fr\/cdn\/event\/photos\/.+\.jpg$/),
+      description: expect.any(String),
     });
   });
 

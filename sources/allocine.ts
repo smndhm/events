@@ -4,6 +4,7 @@
 // with its showtimes in each cinema showing it, by day, the nearest cinema first.
 import { addDays, parisDay, withParisOffset } from '../utils/dates.ts';
 import { fetchPage } from '../utils/http.ts';
+import { cleanDescription } from '../utils/json-ld.ts';
 import { distanceKm } from '../utils/geo.ts';
 import type { Event, Showing, Source } from '../types.ts';
 
@@ -27,7 +28,7 @@ type Answer = {
   error: boolean;
   message?: string | null;
   pagination?: { page: number | string; totalPages: number };
-  results: { movie: { internalId: number; title: string; runtime?: string | null }; showtimes: Record<string, Showtime[]> }[];
+  results: { movie: { internalId: number; title: string; runtime?: string | null; synopsis?: string | null }; showtimes: Record<string, Showtime[]> }[];
 };
 
 // ORIGINAL: a foreign film in original version, subtitled or not. LOCAL: a French film, in French. DUBBED, left out: a
@@ -35,7 +36,7 @@ type Answer = {
 const VERSIONS = ['ORIGINAL', 'LOCAL'] as const;
 type Version = (typeof VERSIONS)[number];
 
-export type Screening = { movieId: number; title: string; startsAt: string; version: Version; minutes?: number };
+export type Screening = { movieId: number; title: string; startsAt: string; version: Version; minutes?: number; synopsis?: string };
 
 // "1h 33min", or "52min": in minutes
 export const parseRuntime = (runtime: string | null | undefined): number | undefined => {
@@ -59,6 +60,7 @@ export const parseShowtimes = (answer: Answer): Screening[] => {
         startsAt: withParisOffset(showtime.startsAt),
         version: showtime.diffusionVersion,
         minutes: parseRuntime(movie.runtime),
+        synopsis: cleanDescription(movie.synopsis),
       })),
   );
 };
@@ -106,6 +108,7 @@ export const toEvents = (showings: Programme[]): Event[] => {
       lon: nearest?.lon,
       url: `https://www.allocine.fr/film/fichefilm_gen_cfilm=${movieId}.html`,
       minutes: first?.minutes,
+      description: first?.synopsis,
       showings: programmes.map(({ theater, distance }) =>
         toShowing(
           theater,
