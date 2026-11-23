@@ -3,7 +3,7 @@
 What is coming up around home: flea markets, garage sales, original version films, special events. Rebuilt every morning as a web page and RSS feeds, so the weekend is planned before it starts rather than searched for on the day.
 
 - The page: <https://smndhm.github.io/events/>, by day, each day's categories folded with their number of events. What has passed by the time it is read is hidden ([`render/page.js`](render/page.js)).
-- The feeds: [`rss.xml`](https://smndhm.github.io/events/rss.xml) for everything, and one per category in [`rss/`](https://smndhm.github.io/events/rss/brocante.xml). An event is an item once, the day it appears, not again on every run.
+- The feeds: [`rss.xml`](https://smndhm.github.io/events/rss.xml) for everything, and one per category in [`rss/`](https://smndhm.github.io/events/rss/brocante.xml). An event is an item once, the day it appears, not again on every run. Each item says when and where, gives what the site says of the event (a film's synopsis), and links to its calendar file, or a film's showtimes to theirs.
 
 ## How it works
 

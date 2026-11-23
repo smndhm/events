@@ -40,6 +40,7 @@ describe('parseEventPage', () => {
         lon: -3.12016,
         url: TREASURE_HUNT_URL,
         image: expect.stringContaining('tourinsoft'),
+        description: expect.stringMatching(/^À travers Sabine .+\n\nChaque atelier/s),
       },
     ]);
   });
@@ -68,10 +69,18 @@ describe('morbihan', () => {
     expect(events.map(({ title }) => title)).toEqual(['Chasse au trésor de Noël']);
   });
 
+  it('reads again a page read with another version of the parser', async () => {
+    answers(200);
+    const old = { id: 'old', source: 'morbihan', category: 'sortie' as const, title: 'Old', start: '2026-12-19', place: 'Landévant', url: TREASURE_HUNT_URL };
+    const store: CacheStore = { test: { [TREASURE_HUNT_URL]: { version: '2026-11-08T07:30:09+00:00', events: [old] } } };
+    const events = await morbihan().fetchEvents(context(undefined, store));
+    expect(events.map(({ title }) => title)).toEqual(['Chasse au trésor de Noël']);
+  });
+
   it('takes from the cache the pages that did not change', async () => {
     answers(200);
     const cached = { id: 'cached', source: 'morbihan', category: 'sortie' as const, title: 'Cached', start: '2026-12-19', place: 'Landévant', url: TREASURE_HUNT_URL };
-    const store: CacheStore = { test: { [TREASURE_HUNT_URL]: { version: '2026-11-08T07:30:09+00:00', events: [cached] } } };
+    const store: CacheStore = { test: { [TREASURE_HUNT_URL]: { version: '2026-11-08T07:30:09+00:00#2', events: [cached] } } };
     const events = await morbihan().fetchEvents(context(undefined, store));
     expect(events.map(({ title }) => title)).toEqual(['Cached']);
     expect(vi.mocked(fetch).mock.calls.map(([url]) => String(url))).not.toContain(TREASURE_HUNT_URL);

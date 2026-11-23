@@ -5,6 +5,7 @@ export type JsonLdEvent = {
   '@type': string | string[];
   '@id'?: string;
   'name'?: string;
+  'description'?: string | null;
   'url'?: string;
   'startDate'?: string;
   'endDate'?: string;
@@ -50,3 +51,14 @@ export const decodeEntities = (text: string): string =>
     if (code.startsWith('#')) return String.fromCodePoint(Number(code.slice(1)));
     return ENTITIES[code.toLowerCase()] ?? entity;
   });
+
+// A description as plain text: its entities decoded, spaces tidied, its paragraphs kept apart; none when empty
+export const cleanDescription = (text: string | null | undefined): string | undefined => {
+  const clean = decodeEntities(text ?? '')
+    .replace(/\r\n?/g, '\n')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/ *\n */g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  return clean || undefined;
+};

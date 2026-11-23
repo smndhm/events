@@ -25,6 +25,8 @@ export type Event = {
   lon?: number;
   url: string;
   image?: string;
+  // What the site says of it, as plain text, its paragraphs apart; a film's synopsis
+  description?: string;
   // A film's showtimes in each cinema showing it, shown in place of the hours
   showings?: Showing[];
   // How long it lasts, such as a film, in minutes: the end of each showtime in a calendar
